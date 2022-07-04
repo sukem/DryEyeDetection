@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">DryEyeDetection</string>
+    <string name="load_picture">load picture</string>
+    <string name="load_video">load video</string>
+    <string name="start_camera">start camera</string>
+    <string name="instruction">Please press any button above to start</string>
 </resources>
