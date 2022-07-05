@@ -26,6 +26,7 @@ import androidx.activity.result.ActivityResultLauncher;
 // ContentResolver dependency
 import com.google.common.collect.ImmutableSet;
 import com.google.mediapipe.formats.proto.LandmarkProto.NormalizedLandmark;
+import com.google.mediapipe.framework.TextureFrame;
 import com.google.mediapipe.solutioncore.CameraInput;
 import com.google.mediapipe.solutioncore.SolutionGlSurfaceView;
 import com.google.mediapipe.solutioncore.VideoInput;
@@ -43,8 +44,8 @@ public class MainActivity extends AppCompatActivity {
     private FaceMesh facemesh;
     // Run the pipeline and the model inference on GPU or CPU.
     private static final boolean RUN_ON_GPU = true;
-
-    private static float lastUpdate = System.nanoTime();
+    private float lastUpdate = System.nanoTime();
+    private float xyRatio = 0;
 
     private enum InputSource {
         UNKNOWN,
@@ -143,8 +144,23 @@ public class MainActivity extends AppCompatActivity {
 //                    logNoseLandmark(faceMeshResult, /*showPixelValues=*/ false);
 
                     if (!faceMeshResult.multiFaceLandmarks().isEmpty()) {
-                        calcEyesAspectRatio(faceMeshResult.multiFaceLandmarks().get(0).getLandmarkList(),
-                                FaceMeshConnections.FACEMESH_LEFT_EYE);
+//                        TextureFrame texture1 = faceMeshResult.getCachedInputTextureFrame();
+//                        TextureFrame texture2 = faceMeshResult.acquireInputTextureFrame();
+//                        xyRatio = 144f / 176f;
+                        if (xyRatio == 0) {
+                            TextureFrame texture = faceMeshResult.acquireInputTextureFrame();
+                            xyRatio = (float) texture.getWidth() / texture.getHeight();
+                        }
+//                        if (texture1 == null && texture2 == null) {
+//                            Log.d(TAG, "No texture");
+//                        } else {
+//                            if (texture1 != null)
+//                                Log.d("CACHED", String.valueOf(texture1.getHeight()));
+//                            if (texture2 != null)
+//                                Log.d("ACQUIRE", String.valueOf(texture2.getHeight()));
+//                        }
+//                        Log.d("VIEW SIZE", String.valueOf(glSurfaceView.get / glSurfaceView.getWidth()));
+                        calcEyesAspectRatio(faceMeshResult.multiFaceLandmarks().get(0).getLandmarkList());
 //                        Log.d(TAG, "FPS = " + String.valueOf(1000000000f / (System.nanoTime() - lastUpdate)));
 //                        lastUpdate = System.nanoTime();
                     } else {
@@ -189,11 +205,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void calcEyesAspectRatio(
-            List<NormalizedLandmark> faceLandmarkList,
-            ImmutableSet<FaceMeshConnections.Connection> connections)
+            List<NormalizedLandmark> faceLandmarkList)
     {
-        if (connections.equals(FaceMeshConnections.FACEMESH_LEFT_EYE)) {
-            List<FaceMeshConnections.Connection> left = connections.asList();
+        float rightEAR, leftEAR;
+        {
+            List<FaceMeshConnections.Connection> left = FaceMeshConnections.FACEMESH_LEFT_EYE.asList();
             NormalizedLandmark p1 = faceLandmarkList.get(left.get(0).start());
             NormalizedLandmark p2 = faceLandmarkList.get(left.get(3).start());
             NormalizedLandmark p3 = faceLandmarkList.get(left.get(4).end());
@@ -201,19 +217,33 @@ public class MainActivity extends AppCompatActivity {
             NormalizedLandmark p5 = faceLandmarkList.get(left.get(12).end());
             NormalizedLandmark p6 = faceLandmarkList.get(left.get(11).start());
 
-            float xyRatio = (float) Math.sqrt(1.0/1.61);
             float[] horizontalVec = {(p4.getX() - p1.getX()) * xyRatio, p4.getY() - p1.getY()};
             float[] orig = {0f, 0f};
             float hvd = getDistance(horizontalVec, orig);
             float[] verticalUnit = {horizontalVec[1] / hvd, -horizontalVec[0] / hvd};
             float[] verticalVec1 = {(p2.getX() - p6.getX()) * xyRatio, p2.getY() - p6.getY()};
             float[] verticalVec2 = {(p3.getX() - p5.getX()) * xyRatio, p3.getY() - p5.getY()};
-            float ear = (dotProduct(verticalVec1, verticalUnit) + dotProduct(verticalVec2, verticalUnit)) / (2 * hvd);
-
-            Log.d(TAG, "EAR = " + String.valueOf(ear));
-        } else if (connections.equals(FaceMeshConnections.FACEMESH_RIGHT_EYE)) {
-
+            leftEAR = Math.abs((dotProduct(verticalVec1, verticalUnit) + dotProduct(verticalVec2, verticalUnit)) / (2 * hvd));
         }
+        {
+            List<FaceMeshConnections.Connection> right = FaceMeshConnections.FACEMESH_RIGHT_EYE.asList();
+            NormalizedLandmark p1 = faceLandmarkList.get(right.get(0).start());
+            NormalizedLandmark p2 = faceLandmarkList.get(right.get(3).start());
+            NormalizedLandmark p3 = faceLandmarkList.get(right.get(4).end());
+            NormalizedLandmark p4 = faceLandmarkList.get(right.get(7).end());
+            NormalizedLandmark p5 = faceLandmarkList.get(right.get(12).end());
+            NormalizedLandmark p6 = faceLandmarkList.get(right.get(11).start());
+
+            float[] horizontalVec = {(p4.getX() - p1.getX()) * xyRatio, p4.getY() - p1.getY()};
+            float[] orig = {0f, 0f};
+            float hvd = getDistance(horizontalVec, orig);
+            float[] verticalUnit = {horizontalVec[1] / hvd, -horizontalVec[0] / hvd};
+            float[] verticalVec1 = {(p2.getX() - p6.getX()) * xyRatio, p2.getY() - p6.getY()};
+            float[] verticalVec2 = {(p3.getX() - p5.getX()) * xyRatio, p3.getY() - p5.getY()};
+            rightEAR = Math.abs((dotProduct(verticalVec1, verticalUnit) + dotProduct(verticalVec2, verticalUnit)) / (2 * hvd));
+        }
+        Log.d(TAG, String.format("%.2f, %.2f", leftEAR, rightEAR));
+
     }
 
     private void startCamera() {
@@ -221,8 +251,10 @@ public class MainActivity extends AppCompatActivity {
                 this,
                 facemesh.getGlContext(),
                 CameraInput.CameraFacing.FRONT,
-                glSurfaceView.getWidth(),
-                glSurfaceView.getHeight());
+//                glSurfaceView.getWidth(),
+//                glSurfaceView.getHeight()
+                100,300
+        );
     }
 
     private void stopCurrentPipeline() {

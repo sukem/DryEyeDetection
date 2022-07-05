@@ -101,6 +101,7 @@ public class FaceMeshResultGlRenderer implements ResultGlRenderer<FaceMeshResult
 //                0f,     -3.23f, 0f,     0f,
 //                0f,     0f,     -1f,    0f,
 //                -1f,    1.61f,  0f,     1f};
+//        Log.d(TAG, String.valueOf(projectionMatrix[5] / projectionMatrix[0]));
         GLES20.glUniformMatrix4fv(projectionMatrixHandle, 1, false, projectionMatrix, 0);
 
         int numFaces = result.multiFaceLandmarks().size();
