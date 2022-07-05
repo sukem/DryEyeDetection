@@ -4,4 +4,9 @@
     <string name="load_video">load video</string>
     <string name="start_camera">start camera</string>
     <string name="instruction">Please press any button above to start</string>
+    <string name="self_check">self check</string>
+    <string name="home">home</string>
+    <string name="calibration">calibration</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>
