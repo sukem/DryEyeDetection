@@ -40,6 +40,7 @@ import androidx.viewpager2.widget.ViewPager2;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.common.collect.ImmutableSet;
 import com.google.mediapipe.formats.proto.LandmarkProto.NormalizedLandmark;
+import com.google.mediapipe.framework.TextureFrame;
 import com.google.mediapipe.solutioncore.CameraInput;
 import com.google.mediapipe.solutioncore.SolutionGlSurfaceView;
 import com.google.mediapipe.solutioncore.VideoInput;
@@ -60,6 +61,8 @@ public class MainActivity extends AppCompatActivity {
     private FaceMesh facemesh;
     // Run the pipeline and the model inference on GPU or CPU.
     private static final boolean RUN_ON_GPU = true;
+
+    private float xyRatio = 0;
 
     private static float lastUpdate = System.nanoTime();
 
@@ -121,6 +124,12 @@ public class MainActivity extends AppCompatActivity {
         }
         facemesh.setResultListener(
                 faceMeshResult -> {
+                    // input frame のサイズを取得
+                    if (xyRatio == 0) {
+                        TextureFrame texture = faceMeshResult.acquireInputTextureFrame();
+                        xyRatio = (float) texture.getWidth() / texture.getHeight();
+                    }
+
                     float leftEAR = 0f;
                     float rightEAR = 0f;
                     if (!faceMeshResult.multiFaceLandmarks().isEmpty()) {
@@ -164,15 +173,13 @@ public class MainActivity extends AppCompatActivity {
         NormalizedLandmark p5 = faceLandmarkList.get(list.get(12).end());
         NormalizedLandmark p6 = faceLandmarkList.get(list.get(11).start());
 
-        float xyRatio = (float) Math.sqrt(1.0/1.61);
         float[] horizontalVec = {(p4.getX() - p1.getX()) * xyRatio, p4.getY() - p1.getY()};
         float[] orig = {0f, 0f};
         float hvd = getDistance(horizontalVec, orig);
         float[] verticalUnit = {horizontalVec[1] / hvd, -horizontalVec[0] / hvd};
         float[] verticalVec1 = {(p2.getX() - p6.getX()) * xyRatio, p2.getY() - p6.getY()};
         float[] verticalVec2 = {(p3.getX() - p5.getX()) * xyRatio, p3.getY() - p5.getY()};
-        float ear = (dotProduct(verticalVec1, verticalUnit) + dotProduct(verticalVec2, verticalUnit)) / (2 * hvd);
-
+        float ear = Math.abs(dotProduct(verticalVec1, verticalUnit) + dotProduct(verticalVec2, verticalUnit)) / (2 * hvd);
 //        Log.d(TAG, "EAR = " + String.valueOf(ear));
         return ear;
     }

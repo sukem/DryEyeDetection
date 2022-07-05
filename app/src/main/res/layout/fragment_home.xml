@@ -10,26 +10,26 @@
     <!-- TODO: Update blank fragment layout -->
 
     <ImageView
-        android:id="@+id/leftEye"
+        android:id="@+id/rightEye"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="32dp"
         android:layout_marginTop="128dp"
         android:layout_marginEnd="155dp"
         android:src="@drawable/ic_eye_closed_svgrepo_com"
-        app:layout_constraintEnd_toStartOf="@+id/rightEye"
+        app:layout_constraintEnd_toStartOf="@+id/leftEye"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
     <ImageView
-        android:id="@+id/rightEye"
+        android:id="@+id/leftEye"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginEnd="32dp"
         android:src="@drawable/ic_eye_svgrepo_com"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/leftEye" />
+        app:layout_constraintTop_toTopOf="@+id/rightEye" />
 
     <TextView
         android:id="@+id/textView2"
