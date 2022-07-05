@@ -14,70 +14,45 @@
 
 package com.example.sukem.dryeyedetection;
 
-import android.content.Intent;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import android.util.Log;
-import android.view.View;
-import android.widget.Button;
-import android.widget.FrameLayout;
 
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentActivity;
-import androidx.fragment.app.FragmentContainerView;
 import androidx.navigation.NavController;
 import androidx.navigation.NavDestination;
-import androidx.navigation.Navigation;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.navigation.ui.NavigationUI;
-import androidx.viewpager2.adapter.FragmentStateAdapter;
-import androidx.viewpager2.widget.ViewPager2;
 // ContentResolver dependency
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.common.collect.ImmutableSet;
 import com.google.mediapipe.formats.proto.LandmarkProto.NormalizedLandmark;
 import com.google.mediapipe.framework.TextureFrame;
 import com.google.mediapipe.solutioncore.CameraInput;
-import com.google.mediapipe.solutioncore.SolutionGlSurfaceView;
-import com.google.mediapipe.solutioncore.VideoInput;
 import com.google.mediapipe.solutions.facemesh.FaceMesh;
 import com.google.mediapipe.solutions.facemesh.FaceMeshConnections;
 import com.google.mediapipe.solutions.facemesh.FaceMeshOptions;
-import com.google.mediapipe.solutions.facemesh.FaceMeshResult;
 
 import java.util.List;
-import java.util.Objects;
 
 /** Main activity of MediaPipe Face Mesh app. */
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
 
-    private NavController navController;
+    private NavHostFragment navHostFragment;
 
-    private FaceMesh facemesh;
-    // Run the pipeline and the model inference on GPU or CPU.
-    private static final boolean RUN_ON_GPU = true;
-
+    public FaceMesh facemesh;
     private float xyRatio = 0;
-
     private static float lastUpdate = System.nanoTime();
 
     private enum InputSource {
         UNKNOWN,
-        IMAGE,
-        VIDEO,
-        CAMERA,
+        CAMERA
     }
     private InputSource inputSource = InputSource.UNKNOWN;
-    private FaceMeshResultImageView imageView;
-    // Live camera demo UI and camera components.
     private CameraInput cameraInput;
-
-    private SolutionGlSurfaceView<FaceMeshResult> glSurfaceView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -85,9 +60,9 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         BottomNavigationView bottomNavigationView = findViewById(R.id.bottomNavigation);
-        NavHostFragment fragment = (NavHostFragment) getSupportFragmentManager().findFragmentById(R.id.fragmentContainerView);
-        assert fragment != null;
-        navController = fragment.getNavController();
+        navHostFragment = (NavHostFragment) getSupportFragmentManager().findFragmentById(R.id.fragmentContainerView);
+        assert navHostFragment != null;
+        NavController navController = navHostFragment.getNavController();
         navController.addOnDestinationChangedListener(new NavController.OnDestinationChangedListener() {
             @Override
             public void onDestinationChanged(@NonNull NavController navController, @NonNull NavDestination navDestination, @Nullable Bundle bundle) {
@@ -101,12 +76,11 @@ public class MainActivity extends AppCompatActivity {
         NavigationUI.setupWithNavController(bottomNavigationView, navController);
 
         stopCurrentPipeline();
-        setupStreamingModePipeline(InputSource.CAMERA);
-        startCamera();
+        setupStreamingModePipeline();
     }
 
-    private void setupStreamingModePipeline(InputSource inputSource) {
-        this.inputSource = inputSource;
+    private void setupStreamingModePipeline() {
+        this.inputSource = InputSource.CAMERA;
         // Initializes a new MediaPipe Face Mesh solution instance in the streaming mode.
         facemesh =
                 new FaceMesh(
@@ -114,14 +88,13 @@ public class MainActivity extends AppCompatActivity {
                         FaceMeshOptions.builder()
                                 .setStaticImageMode(false)
                                 .setRefineLandmarks(true)
-                                .setRunOnGpu(RUN_ON_GPU)
+                                .setRunOnGpu(true)
                                 .build());
         facemesh.setErrorListener((message, e) -> Log.e(TAG, "MediaPipe Face Mesh error:" + message));
 
-        if (inputSource == InputSource.CAMERA) {
-            cameraInput = new CameraInput(this);
-            cameraInput.setNewFrameListener(textureFrame -> facemesh.send(textureFrame));
-        }
+        cameraInput = new CameraInput(this);
+        cameraInput.setNewFrameListener(textureFrame -> facemesh.send(textureFrame));
+
         facemesh.setResultListener(
                 faceMeshResult -> {
                     // input frame のサイズを取得
@@ -143,7 +116,9 @@ public class MainActivity extends AppCompatActivity {
                         Log.d(TAG, "EYES NOT FOUND");
                     }
 
-                    Fragment navHostFragment = getSupportFragmentManager().findFragmentById(R.id.fragmentContainerView);
+                    if (navHostFragment == null) {
+                        navHostFragment = (NavHostFragment) getSupportFragmentManager().findFragmentById(R.id.fragmentContainerView);
+                    }
                     assert navHostFragment != null;
                     ((FaceMeshResultReceiverInterface) navHostFragment.getChildFragmentManager().getFragments().get(0)).setResult(faceMeshResult, leftEAR, rightEAR, System.nanoTime());
                 });
@@ -179,9 +154,7 @@ public class MainActivity extends AppCompatActivity {
         float[] verticalUnit = {horizontalVec[1] / hvd, -horizontalVec[0] / hvd};
         float[] verticalVec1 = {(p2.getX() - p6.getX()) * xyRatio, p2.getY() - p6.getY()};
         float[] verticalVec2 = {(p3.getX() - p5.getX()) * xyRatio, p3.getY() - p5.getY()};
-        float ear = Math.abs(dotProduct(verticalVec1, verticalUnit) + dotProduct(verticalVec2, verticalUnit)) / (2 * hvd);
-//        Log.d(TAG, "EAR = " + String.valueOf(ear));
-        return ear;
+        return Math.abs(dotProduct(verticalVec1, verticalUnit) + dotProduct(verticalVec2, verticalUnit)) / (2 * hvd);
     }
 
     @Override
@@ -191,6 +164,7 @@ public class MainActivity extends AppCompatActivity {
             // Restarts the camera and the opengl surface rendering.
             cameraInput = new CameraInput(this);
             cameraInput.setNewFrameListener(textureFrame -> facemesh.send(textureFrame));
+            startCamera();
 //            glSurfaceView.post(this::startCamera);
 //            glSurfaceView.setVisibility(View.VISIBLE);
         }
@@ -212,7 +186,7 @@ public class MainActivity extends AppCompatActivity {
                 CameraInput.CameraFacing.FRONT,
 //                glSurfaceView.getWidth(),
 //                glSurfaceView.getHeight()
-                640,480
+                144,176
         );
     }
 
@@ -220,9 +194,6 @@ public class MainActivity extends AppCompatActivity {
         if (cameraInput != null) {
             cameraInput.setNewFrameListener(null);
             cameraInput.close();
-        }
-        if (glSurfaceView != null) {
-            glSurfaceView.setVisibility(View.GONE);
         }
         if (facemesh != null) {
             facemesh.close();

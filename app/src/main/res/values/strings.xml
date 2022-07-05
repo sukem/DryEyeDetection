@@ -7,6 +7,7 @@
     <string name="self_check">self check</string>
     <string name="home">home</string>
     <string name="calibration">calibration</string>
-    <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="eyes_mesh_switch_text">Eye</string>
+    <string name="face_mesh_switch_text">Face</string>
 </resources>
