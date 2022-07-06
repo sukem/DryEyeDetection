@@ -15,7 +15,7 @@
         <FrameLayout
             android:id="@+id/preview_display_layout"
             android:layout_width="match_parent"
-            android:layout_height="300dp">
+            android:layout_height="400dp">
 
         </FrameLayout>
 
@@ -41,6 +41,10 @@
                 android:minHeight="48dp"
                 android:text="@string/face_mesh_switch_text" />
         </LinearLayout>
+        <com.github.mikephil.charting.charts.LineChart
+            android:id="@+id/line_chart"
+            android:layout_width="match_parent"
+            android:layout_height="200dp" />
 
     </LinearLayout>
 </ScrollView>

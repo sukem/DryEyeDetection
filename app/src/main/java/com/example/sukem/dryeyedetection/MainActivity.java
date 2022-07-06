@@ -20,6 +20,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import android.util.Log;
+import android.view.View;
 
 import androidx.navigation.NavController;
 import androidx.navigation.NavDestination;
@@ -46,6 +47,7 @@ public class MainActivity extends AppCompatActivity {
     public FaceMesh facemesh;
     private float xyRatio = 0;
     private static float lastUpdate = System.nanoTime();
+    private View viewForCamera;
 
     private enum InputSource {
         UNKNOWN,
@@ -77,6 +79,7 @@ public class MainActivity extends AppCompatActivity {
 
         stopCurrentPipeline();
         setupStreamingModePipeline();
+        viewForCamera = findViewById(R.id.fragmentContainerView);
     }
 
     private void setupStreamingModePipeline() {
@@ -164,7 +167,7 @@ public class MainActivity extends AppCompatActivity {
             // Restarts the camera and the opengl surface rendering.
             cameraInput = new CameraInput(this);
             cameraInput.setNewFrameListener(textureFrame -> facemesh.send(textureFrame));
-            startCamera();
+            viewForCamera.post(this::startCamera);
 //            glSurfaceView.post(this::startCamera);
 //            glSurfaceView.setVisibility(View.VISIBLE);
         }
@@ -184,9 +187,11 @@ public class MainActivity extends AppCompatActivity {
                 this,
                 facemesh.getGlContext(),
                 CameraInput.CameraFacing.FRONT,
+                viewForCamera.getWidth(),
+                viewForCamera.getHeight()
 //                glSurfaceView.getWidth(),
 //                glSurfaceView.getHeight()
-                144,176
+//                144,176
         );
     }
 
