@@ -109,10 +109,11 @@ public class MainActivity extends AppCompatActivity {
                     float leftEAR = 0f;
                     float rightEAR = 0f;
                     if (!faceMeshResult.multiFaceLandmarks().isEmpty()) {
+                        // 左右注意
                         leftEAR = calcEyesAspectRatio(faceMeshResult.multiFaceLandmarks().get(0).getLandmarkList(),
-                                FaceMeshConnections.FACEMESH_LEFT_EYE);
-                        rightEAR = calcEyesAspectRatio(faceMeshResult.multiFaceLandmarks().get(0).getLandmarkList(),
                                 FaceMeshConnections.FACEMESH_RIGHT_EYE);
+                        rightEAR = calcEyesAspectRatio(faceMeshResult.multiFaceLandmarks().get(0).getLandmarkList(),
+                                FaceMeshConnections.FACEMESH_LEFT_EYE);
                         Log.d(TAG, "FPS = " + String.valueOf(1000000000f / (System.nanoTime() - lastUpdate)));
                         lastUpdate = System.nanoTime();
                     } else {
