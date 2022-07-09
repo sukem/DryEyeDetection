@@ -1,9 +1,12 @@
 package com.example.sukem.dryeyedetection;
 
+import static android.content.Intent.ACTION_SEND;
+
 import android.annotation.SuppressLint;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
@@ -22,16 +25,26 @@ import android.widget.ImageView;
 
 import androidx.annotation.RequiresApi;
 import androidx.core.app.NotificationCompat;
+import androidx.lifecycle.LifecycleService;
 
-public class ForegroundService extends Service {
+import com.google.mediapipe.solutioncore.CameraInput;
+import com.google.mediapipe.solutions.facemesh.FaceMesh;
+import com.google.mediapipe.solutions.facemesh.FaceMeshOptions;
+
+public class ForegroundService extends LifecycleService {
     private static final String TAG = "ForegroundService";
     private WindowManager windowManager;
     private ImageView floatingButton;
 
     private WindowManager.LayoutParams params;
 
+    public FaceMesh facemesh;
+    private MainActivity.InputSource inputSource = MainActivity.InputSource.UNKNOWN;
+    private CameraInputForService cameraInput;
+
     @Override
     public IBinder onBind(Intent intent) {
+        super.onBind(intent);
         return null;
     }
 
@@ -41,12 +54,62 @@ public class ForegroundService extends Service {
         super.onCreate();
         Log.d(TAG, "onCreate called");
 
-        setupFloatingView();
+//        setupFloatingView();
+        setupStreamingModePipeline();
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startFloatingButtonForeground();
         } else {
             startForeground(1, new Notification());
+        }
+    }
+
+    private void setupStreamingModePipeline() {
+        this.inputSource = MainActivity.InputSource.CAMERA;
+        // Initializes a new MediaPipe Face Mesh solution instance in the streaming mode.
+        facemesh =
+                new FaceMesh(
+                        this,
+                        FaceMeshOptions.builder()
+                                .setStaticImageMode(false)
+                                .setRefineLandmarks(true)
+                                .setRunOnGpu(true)
+                                .build());
+        facemesh.setErrorListener((message, e) -> Log.e(TAG, "MediaPipe Face Mesh error:" + message));
+
+        cameraInput = new CameraInputForService();
+        cameraInput.setNewFrameListener(textureFrame -> facemesh.send(textureFrame));
+        facemesh.setResultListener(facemesh -> {
+            Log.d(TAG, "DATA RECEIVED");
+        });
+
+        startCamera();
+    }
+
+    private void startCamera() {
+//        cameraInput.start(
+//                facemesh.getGlContext(),
+//                CameraInput.CameraFacing.FRONT,
+//                480,640
+//        );
+
+        cameraInput.start(
+                getApplicationContext(),
+                this,
+                facemesh.getGlContext(),
+                CameraInput.CameraFacing.FRONT,
+                480,
+                640
+        );
+    }
+
+    private void stopCurrentPipeline() {
+        if (cameraInput != null) {
+            cameraInput.setNewFrameListener(null);
+            cameraInput.close();
+        }
+        if (facemesh != null) {
+            facemesh.close();
         }
     }
 
@@ -100,6 +163,15 @@ public class ForegroundService extends Service {
         assert manager != null;
         manager.createNotificationChannel(chan);
 
+        // タップしたときにMainActivityを起動するためのIntent
+        Intent openMainIntent = new Intent(getApplicationContext(), MainActivity.class);
+        PendingIntent openIntent = PendingIntent.getActivity(getApplicationContext(), 0, openMainIntent, PendingIntent.FLAG_IMMUTABLE);
+
+        // 停止ボタン
+        Intent sendIntent = new Intent(getApplicationContext(), ServiceBroadcastReceiver.class);
+        sendIntent.setAction(ACTION_SEND);
+        PendingIntent sendPendingIntent = PendingIntent.getBroadcast(getApplicationContext(), 0, sendIntent, PendingIntent.FLAG_IMMUTABLE);
+
         NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID);
         Notification notification = notificationBuilder.setOngoing(true)
                 .setContentTitle("Service running")
@@ -110,6 +182,8 @@ public class ForegroundService extends Service {
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
                 .setPriority(NotificationManager.IMPORTANCE_MIN)
                 .setCategory(Notification.CATEGORY_SERVICE)
+                .setContentIntent(openIntent)
+                .addAction(R.drawable.ic_launcher_foreground, "停止する", sendPendingIntent)
                 .build();
         startForeground(2, notification);
     }
@@ -117,6 +191,7 @@ public class ForegroundService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        stopCurrentPipeline();
         if (null != floatingButton) {
             windowManager.removeView(floatingButton);
         }

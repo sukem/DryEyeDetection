@@ -14,16 +14,25 @@
 
 package com.example.sukem.dryeyedetection;
 
+import android.annotation.SuppressLint;
+import android.content.ComponentName;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.os.Build;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+
+import android.os.Handler;
+import android.os.IBinder;
+import android.os.Message;
+import android.os.Messenger;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.Toast;
 
 import androidx.navigation.NavController;
 import androidx.navigation.NavDestination;
@@ -43,16 +52,26 @@ import com.google.mediapipe.solutions.facemesh.FaceMeshResult;
 import java.util.List;
 
 /** Main activity of MediaPipe Face Mesh app. */
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements ServiceConnection {
     private static final String TAG = "MainActivity";
 
     private NavHostFragment navHostFragment;
 
     public FaceMesh facemesh;
-    private static float lastUpdate = System.nanoTime();
     private View viewForCamera;
+    public static Handler facemeshResultHandler;
 
-    private enum InputSource {
+    @Override
+    public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
+        Toast.makeText(getApplicationContext(), "サービスに接続しました", Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void onServiceDisconnected(ComponentName componentName) {
+        Toast.makeText(getApplicationContext(), "サービスから切断しました", Toast.LENGTH_SHORT).show();
+    }
+
+    enum InputSource {
         UNKNOWN,
         CAMERA
     }
@@ -84,12 +103,12 @@ public class MainActivity extends AppCompatActivity {
 //        setupStreamingModePipeline();
         viewForCamera = findViewById(R.id.fragmentContainerView);
 
-        // TODO permission check
-        // TODO versions
-        Intent floatingButtonServiceIntent = new Intent(this, ForegroundService.class);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(floatingButtonServiceIntent);
-        }
+//        // TODO permission check
+//        // TODO versions
+//        Intent floatingButtonServiceIntent = new Intent(getApplicationContext(), ForegroundService.class);
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+//            startForegroundService(floatingButtonServiceIntent);
+//        }
     }
 
     private void setupStreamingModePipeline() {
@@ -127,7 +146,6 @@ public class MainActivity extends AppCompatActivity {
             rightEAR = EyeAspectRatioUtils.calcEyesAspectRatio(faceMeshResult.multiFaceLandmarks().get(0).getLandmarkList(),
                     FaceMeshConnections.FACEMESH_LEFT_EYE);
 //                        Log.d(TAG, "FPS = " + String.valueOf(1000000000f / (System.nanoTime() - lastUpdate)));
-            lastUpdate = System.nanoTime();
         } else {
 //                        Log.d(TAG, "EYES NOT FOUND");
         }
