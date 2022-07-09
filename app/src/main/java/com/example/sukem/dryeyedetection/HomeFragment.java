@@ -1,13 +1,19 @@
 package com.example.sukem.dryeyedetection;
 
+import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 
 import androidx.fragment.app.Fragment;
 
+import android.provider.Settings;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.Toast;
 
 import com.google.mediapipe.solutions.facemesh.FaceMeshResult;
 
@@ -17,7 +23,7 @@ import com.google.mediapipe.solutions.facemesh.FaceMeshResult;
  * create an instance of this fragment.
  */
 public class HomeFragment extends Fragment implements FaceMeshResultReceiverInterface {
-
+    private static final String TAG = "HomeFragment";
     private ImageView leftEye;
     private ImageView rightEye;
 
@@ -61,6 +67,40 @@ public class HomeFragment extends Fragment implements FaceMeshResultReceiverInte
         View view = inflater.inflate(R.layout.fragment_home, container, false);
         leftEye = view.findViewById(R.id.leftEye);
         rightEye = view.findViewById(R.id.rightEye);
+
+        Button buttonStart = view.findViewById(R.id.button1);
+        Button buttonStop = view.findViewById(R.id.button2);
+        buttonStart.setOnClickListener(v -> {
+            checkOverlayPermission();
+            MainActivity mainActivity = (MainActivity) getActivity();
+            if (mainActivity != null) {
+                Log.d(TAG, "START button pushed");
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    if(Settings.canDrawOverlays(getContext())) {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            Intent floatingButtonServiceIntent = new Intent(mainActivity, ForegroundService.class);
+                            mainActivity.startForegroundService(floatingButtonServiceIntent);
+                        } else {
+                            mainActivity.startService(new Intent(mainActivity, ForegroundService.class));
+                        }
+                    }
+                } else {
+                    mainActivity.startService(new Intent(mainActivity, ForegroundService.class));
+                }
+            } else {
+                Toast.makeText(getContext(), "NO activity", Toast.LENGTH_SHORT).show();
+            }
+        });
         return view;
+    }
+
+    public void checkOverlayPermission(){
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (!Settings.canDrawOverlays(getContext())) {
+                // send user to the device settings
+                Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION);
+                startActivity(intent);
+            }
+        }
     }
 }

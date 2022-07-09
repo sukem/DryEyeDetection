@@ -3,6 +3,11 @@
     xmlns:tools="http://schemas.android.com/tools"
     package="com.example.sukem.dryeyedetection">
 
+    <!-- For overlay -->
+    <uses-permission android:name="android.permission.ACTION_MANAGE_OVERLAY_PERMISSION"/>
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+
     <!-- For loading images from gallery -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <!-- For using the camera -->
@@ -22,6 +27,12 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.DryEyeDetection"
         tools:targetApi="31">
+
+        <service
+            android:name=".ForegroundService"
+            android:enabled="true"
+            android:exported="true"/>
+
         <activity
             android:name=".MainActivity"
             android:exported="true">

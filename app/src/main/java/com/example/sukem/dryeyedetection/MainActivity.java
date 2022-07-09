@@ -14,6 +14,8 @@
 
 package com.example.sukem.dryeyedetection;
 
+import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -21,6 +23,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 
 import androidx.navigation.NavController;
 import androidx.navigation.NavDestination;
@@ -35,6 +38,7 @@ import com.google.mediapipe.solutioncore.CameraInput;
 import com.google.mediapipe.solutions.facemesh.FaceMesh;
 import com.google.mediapipe.solutions.facemesh.FaceMeshConnections;
 import com.google.mediapipe.solutions.facemesh.FaceMeshOptions;
+import com.google.mediapipe.solutions.facemesh.FaceMeshResult;
 
 import java.util.List;
 
@@ -45,7 +49,6 @@ public class MainActivity extends AppCompatActivity {
     private NavHostFragment navHostFragment;
 
     public FaceMesh facemesh;
-    private float xyRatio = 0;
     private static float lastUpdate = System.nanoTime();
     private View viewForCamera;
 
@@ -78,8 +81,15 @@ public class MainActivity extends AppCompatActivity {
         NavigationUI.setupWithNavController(bottomNavigationView, navController);
 
         stopCurrentPipeline();
-        setupStreamingModePipeline();
+//        setupStreamingModePipeline();
         viewForCamera = findViewById(R.id.fragmentContainerView);
+
+        // TODO permission check
+        // TODO versions
+        Intent floatingButtonServiceIntent = new Intent(this, ForegroundService.class);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(floatingButtonServiceIntent);
+        }
     }
 
     private void setupStreamingModePipeline() {
@@ -98,67 +108,35 @@ public class MainActivity extends AppCompatActivity {
         cameraInput = new CameraInput(this);
         cameraInput.setNewFrameListener(textureFrame -> facemesh.send(textureFrame));
 
-        facemesh.setResultListener(
-                faceMeshResult -> {
-                    // input frame のサイズを取得
-                    if (xyRatio == 0) {
-                        TextureFrame texture = faceMeshResult.acquireInputTextureFrame();
-                        xyRatio = (float) texture.getWidth() / texture.getHeight();
-                    }
-
-                    float leftEAR = 0f;
-                    float rightEAR = 0f;
-                    if (!faceMeshResult.multiFaceLandmarks().isEmpty()) {
-                        // 左右注意
-                        leftEAR = calcEyesAspectRatio(faceMeshResult.multiFaceLandmarks().get(0).getLandmarkList(),
-                                FaceMeshConnections.FACEMESH_RIGHT_EYE);
-                        rightEAR = calcEyesAspectRatio(faceMeshResult.multiFaceLandmarks().get(0).getLandmarkList(),
-                                FaceMeshConnections.FACEMESH_LEFT_EYE);
-                        Log.d(TAG, "FPS = " + String.valueOf(1000000000f / (System.nanoTime() - lastUpdate)));
-                        lastUpdate = System.nanoTime();
-                    } else {
-                        Log.d(TAG, "EYES NOT FOUND");
-                    }
-
-                    if (navHostFragment == null) {
-                        navHostFragment = (NavHostFragment) getSupportFragmentManager().findFragmentById(R.id.fragmentContainerView);
-                    }
-                    assert navHostFragment != null;
-                    ((FaceMeshResultReceiverInterface) navHostFragment.getChildFragmentManager().getFragments().get(0)).setResult(faceMeshResult, leftEAR, rightEAR, System.nanoTime());
-                });
+        facemesh.setResultListener(this::faceMeshResultReceive);
     }
 
-    private float getDistance(float[] vec1, float[] vec2)
-    {
-        float x = vec1[0] - vec2[0];
-        float y = vec1[1] - vec2[1];
-        return (float) Math.sqrt(x*x + y*y);
-    }
+    void faceMeshResultReceive(FaceMeshResult faceMeshResult) {
+        // input frame のサイズを取得
+        if (EyeAspectRatioUtils.xyRatio == 0) {
+            TextureFrame texture = faceMeshResult.acquireInputTextureFrame();
+            EyeAspectRatioUtils.xyRatio = (float) texture.getWidth() / texture.getHeight();
+        }
 
-    private float dotProduct(float[] vec1, float[] vec2)
-    {
-        return vec1[0]*vec2[0] + vec1[1]*vec2[1];
-    }
+        float leftEAR = 0f;
+        float rightEAR = 0f;
+        if (!faceMeshResult.multiFaceLandmarks().isEmpty()) {
+            // 左右注意
+            leftEAR = EyeAspectRatioUtils.calcEyesAspectRatio(faceMeshResult.multiFaceLandmarks().get(0).getLandmarkList(),
+                    FaceMeshConnections.FACEMESH_RIGHT_EYE);
+            rightEAR = EyeAspectRatioUtils.calcEyesAspectRatio(faceMeshResult.multiFaceLandmarks().get(0).getLandmarkList(),
+                    FaceMeshConnections.FACEMESH_LEFT_EYE);
+//                        Log.d(TAG, "FPS = " + String.valueOf(1000000000f / (System.nanoTime() - lastUpdate)));
+            lastUpdate = System.nanoTime();
+        } else {
+//                        Log.d(TAG, "EYES NOT FOUND");
+        }
 
-    private float calcEyesAspectRatio(
-            List<NormalizedLandmark> faceLandmarkList,
-            ImmutableSet<FaceMeshConnections.Connection> connections)
-    {
-        List<FaceMeshConnections.Connection> list = connections.asList();
-        NormalizedLandmark p1 = faceLandmarkList.get(list.get(0).start());
-        NormalizedLandmark p2 = faceLandmarkList.get(list.get(3).start());
-        NormalizedLandmark p3 = faceLandmarkList.get(list.get(4).end());
-        NormalizedLandmark p4 = faceLandmarkList.get(list.get(7).end());
-        NormalizedLandmark p5 = faceLandmarkList.get(list.get(12).end());
-        NormalizedLandmark p6 = faceLandmarkList.get(list.get(11).start());
-
-        float[] horizontalVec = {(p4.getX() - p1.getX()) * xyRatio, p4.getY() - p1.getY()};
-        float[] orig = {0f, 0f};
-        float hvd = getDistance(horizontalVec, orig);
-        float[] verticalUnit = {horizontalVec[1] / hvd, -horizontalVec[0] / hvd};
-        float[] verticalVec1 = {(p2.getX() - p6.getX()) * xyRatio, p2.getY() - p6.getY()};
-        float[] verticalVec2 = {(p3.getX() - p5.getX()) * xyRatio, p3.getY() - p5.getY()};
-        return Math.abs(dotProduct(verticalVec1, verticalUnit) + dotProduct(verticalVec2, verticalUnit)) / (2 * hvd);
+        if (navHostFragment == null) {
+            navHostFragment = (NavHostFragment) getSupportFragmentManager().findFragmentById(R.id.fragmentContainerView);
+        }
+        assert navHostFragment != null;
+        ((FaceMeshResultReceiverInterface) navHostFragment.getChildFragmentManager().getFragments().get(0)).setResult(faceMeshResult, leftEAR, rightEAR, System.nanoTime());
     }
 
     @Override
@@ -181,6 +159,13 @@ public class MainActivity extends AppCompatActivity {
 //            glSurfaceView.setVisibility(View.GONE);
             cameraInput.close();
         }
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        stopCurrentPipeline();
+        Log.d(TAG, "onStop called");
     }
 
     private void startCamera() {

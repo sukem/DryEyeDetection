@@ -116,15 +116,18 @@ public class SettingsFragment extends Fragment implements FaceMeshResultReceiver
 
         // Facemesh 描画設定
         FaceMesh facemesh = ((MainActivity) getActivity()).facemesh;
-        glSurfaceView = new SolutionGlSurfaceView<>(getContext(), facemesh.getGlContext(), facemesh.getGlMajorVersion());
-        glSurfaceView.setSolutionResultRenderer(new FaceMeshResultGlRenderer());
-        glSurfaceView.setRenderInputImage(true);
+        if (facemesh != null) {
+            glSurfaceView = new SolutionGlSurfaceView<>(getContext(), facemesh.getGlContext(), facemesh.getGlMajorVersion());
+            glSurfaceView.setSolutionResultRenderer(new FaceMeshResultGlRenderer());
+            glSurfaceView.setRenderInputImage(true);
 
-        FrameLayout frameLayout = view.findViewById(R.id.preview_display_layout);
-        frameLayout.removeAllViewsInLayout();
-        frameLayout.addView(glSurfaceView);
-        glSurfaceView.setVisibility(View.VISIBLE);
-        frameLayout.requestLayout();
+            FrameLayout frameLayout = view.findViewById(R.id.preview_display_layout);
+            frameLayout.removeAllViewsInLayout();
+            frameLayout.addView(glSurfaceView);
+            glSurfaceView.setVisibility(View.VISIBLE);
+            frameLayout.requestLayout();
+        }
+
 
         // メッシュ表示の切り替えボタン
         SwitchCompat eyesSwitch = view.findViewById(R.id.eyes_mesh_switch);
