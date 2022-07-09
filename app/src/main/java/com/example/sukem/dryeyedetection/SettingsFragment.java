@@ -1,5 +1,6 @@
 package com.example.sukem.dryeyedetection;
 
+import android.media.FaceDetector;
 import android.os.Bundle;
 
 import androidx.appcompat.widget.SwitchCompat;
@@ -115,7 +116,8 @@ public class SettingsFragment extends Fragment implements FaceMeshResultReceiver
         View view = inflater.inflate(R.layout.fragment_settings, container, false);
 
         // Facemesh 描画設定
-        FaceMesh facemesh = ((MainActivity) getActivity()).facemesh;
+        FaceMesh facemesh = ((MainActivity) getActivity()).getFacemesh();
+//        FaceMesh facemesh = ForegroundService.facemesh;
         if (facemesh != null) {
             glSurfaceView = new SolutionGlSurfaceView<>(getContext(), facemesh.getGlContext(), facemesh.getGlMajorVersion());
             glSurfaceView.setSolutionResultRenderer(new FaceMeshResultGlRenderer());

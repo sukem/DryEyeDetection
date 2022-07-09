@@ -6,6 +6,7 @@
 
 package com.example.sukem.dryeyedetection;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.SurfaceTexture;
@@ -96,6 +97,7 @@ public class CameraXPreviewHelperForService extends CameraHelper {
         this.startCamera((Context)context, (LifecycleOwner)lifecycleOwner, cameraFacing, (SurfaceTexture)null, targetSize);
     }
 
+    @SuppressLint("UnsafeOptInUsageError")
     public void startCamera(Context context, LifecycleOwner lifecycleOwner, CameraFacing cameraFacing, @Nullable SurfaceTexture surfaceTexture, @Nullable Size targetSize) {
         Executor mainThreadExecutor = ContextCompat.getMainExecutor(context);
         ListenableFuture<ProcessCameraProvider> cameraProviderFuture = ProcessCameraProvider.getInstance(context);

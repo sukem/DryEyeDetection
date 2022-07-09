@@ -71,36 +71,8 @@ public class HomeFragment extends Fragment implements FaceMeshResultReceiverInte
         Button buttonStart = view.findViewById(R.id.button1);
         Button buttonStop = view.findViewById(R.id.button2);
         buttonStart.setOnClickListener(v -> {
-            checkOverlayPermission();
-            MainActivity mainActivity = (MainActivity) getActivity();
-            if (mainActivity != null) {
-                Log.d(TAG, "START button pushed");
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    if(Settings.canDrawOverlays(getContext())) {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            Intent floatingButtonServiceIntent = new Intent(mainActivity, ForegroundService.class);
-                            mainActivity.startForegroundService(floatingButtonServiceIntent);
-                        } else {
-                            mainActivity.startService(new Intent(mainActivity, ForegroundService.class));
-                        }
-                    }
-                } else {
-                    mainActivity.startService(new Intent(mainActivity, ForegroundService.class));
-                }
-            } else {
-                Toast.makeText(getContext(), "NO activity", Toast.LENGTH_SHORT).show();
-            }
+
         });
         return view;
-    }
-
-    public void checkOverlayPermission(){
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (!Settings.canDrawOverlays(getContext())) {
-                // send user to the device settings
-                Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION);
-                startActivity(intent);
-            }
-        }
     }
 }

@@ -12,6 +12,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.PixelFormat;
+import android.os.Binder;
 import android.os.Build;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
@@ -35,17 +36,19 @@ public class ForegroundService extends LifecycleService {
     private static final String TAG = "ForegroundService";
     private WindowManager windowManager;
     private ImageView floatingButton;
-
     private WindowManager.LayoutParams params;
-
-    public FaceMesh facemesh;
-    private MainActivity.InputSource inputSource = MainActivity.InputSource.UNKNOWN;
+    private FacemeshBinder facemeshBinder = new FacemeshBinder();
+    enum InputSource {
+        UNKNOWN,
+        CAMERA
+    }
+    private InputSource inputSource = InputSource.UNKNOWN;
     private CameraInputForService cameraInput;
 
     @Override
     public IBinder onBind(Intent intent) {
         super.onBind(intent);
-        return null;
+        return facemeshBinder;
     }
 
     @SuppressLint("RtlHardcoded")
@@ -65,9 +68,9 @@ public class ForegroundService extends LifecycleService {
     }
 
     private void setupStreamingModePipeline() {
-        this.inputSource = MainActivity.InputSource.CAMERA;
+        this.inputSource = InputSource.CAMERA;
         // Initializes a new MediaPipe Face Mesh solution instance in the streaming mode.
-        facemesh =
+        facemeshBinder.facemesh =
                 new FaceMesh(
                         this,
                         FaceMeshOptions.builder()
@@ -75,28 +78,22 @@ public class ForegroundService extends LifecycleService {
                                 .setRefineLandmarks(true)
                                 .setRunOnGpu(true)
                                 .build());
-        facemesh.setErrorListener((message, e) -> Log.e(TAG, "MediaPipe Face Mesh error:" + message));
+        facemeshBinder.facemesh.setErrorListener((message, e) -> Log.e(TAG, "MediaPipe Face Mesh error:" + message));
 
         cameraInput = new CameraInputForService();
-        cameraInput.setNewFrameListener(textureFrame -> facemesh.send(textureFrame));
-        facemesh.setResultListener(facemesh -> {
-            Log.d(TAG, "DATA RECEIVED");
+        cameraInput.setNewFrameListener(textureFrame -> facemeshBinder.facemesh.send(textureFrame));
+        facemeshBinder.facemesh.setResultListener(facemesh -> {
+//            Log.d(TAG, "DATA RECEIVED");
         });
 
         startCamera();
     }
 
     private void startCamera() {
-//        cameraInput.start(
-//                facemesh.getGlContext(),
-//                CameraInput.CameraFacing.FRONT,
-//                480,640
-//        );
-
         cameraInput.start(
                 getApplicationContext(),
                 this,
-                facemesh.getGlContext(),
+                facemeshBinder.facemesh.getGlContext(),
                 CameraInput.CameraFacing.FRONT,
                 480,
                 640
@@ -108,8 +105,8 @@ public class ForegroundService extends LifecycleService {
             cameraInput.setNewFrameListener(null);
             cameraInput.close();
         }
-        if (facemesh != null) {
-            facemesh.close();
+        if (facemeshBinder.facemesh != null) {
+            facemeshBinder.facemesh.close();
         }
     }
 

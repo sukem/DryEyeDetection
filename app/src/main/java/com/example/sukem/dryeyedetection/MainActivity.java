@@ -16,6 +16,7 @@ package com.example.sukem.dryeyedetection;
 
 import android.annotation.SuppressLint;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.Build;
@@ -29,6 +30,7 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -41,6 +43,7 @@ import androidx.navigation.ui.NavigationUI;
 // ContentResolver dependency
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.common.collect.ImmutableSet;
+import com.google.mediapipe.components.PermissionHelper;
 import com.google.mediapipe.formats.proto.LandmarkProto.NormalizedLandmark;
 import com.google.mediapipe.framework.TextureFrame;
 import com.google.mediapipe.solutioncore.CameraInput;
@@ -57,26 +60,28 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
 
     private NavHostFragment navHostFragment;
 
-    public FaceMesh facemesh;
-    private View viewForCamera;
-    public static Handler facemeshResultHandler;
+    private FacemeshBinder facemeshBinder;
+    private boolean bounded = false;
+
 
     @Override
     public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
+        Log.d(TAG, "onServiceConnected");
         Toast.makeText(getApplicationContext(), "サービスに接続しました", Toast.LENGTH_SHORT).show();
+        facemeshBinder = (FacemeshBinder) iBinder;
+        facemeshBinder.facemesh.setResultListener(this::faceMeshResultReceive);
+        bounded = true;
     }
 
     @Override
     public void onServiceDisconnected(ComponentName componentName) {
         Toast.makeText(getApplicationContext(), "サービスから切断しました", Toast.LENGTH_SHORT).show();
+        facemeshBinder.facemesh.setResultListener(facemesh -> {
+            Log.d("TAG", "NO activity");
+        });
+        facemeshBinder = null;
+        bounded = false;
     }
-
-    enum InputSource {
-        UNKNOWN,
-        CAMERA
-    }
-    private InputSource inputSource = InputSource.UNKNOWN;
-    private CameraInput cameraInput;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -99,35 +104,45 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
         });
         NavigationUI.setupWithNavController(bottomNavigationView, navController);
 
-        stopCurrentPipeline();
-//        setupStreamingModePipeline();
-        viewForCamera = findViewById(R.id.fragmentContainerView);
 
-//        // TODO permission check
-//        // TODO versions
-//        Intent floatingButtonServiceIntent = new Intent(getApplicationContext(), ForegroundService.class);
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-//            startForegroundService(floatingButtonServiceIntent);
-//        }
+        // サービス開始
+        if (PermissionHelper.cameraPermissionsGranted(this)) {
+            checkOverlayPermission();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                if(Settings.canDrawOverlays(getApplicationContext())) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        Intent floatingButtonServiceIntent = new Intent(this, ForegroundService.class);
+                        startForegroundService(floatingButtonServiceIntent);
+                    } else {
+                        startService(new Intent(this, ForegroundService.class));
+                    }
+                }
+            } else {
+                startService(new Intent(this, ForegroundService.class));
+            }
+        }
+
+        Intent bindIntent = new Intent(this, ForegroundService.class);
+        bindService(bindIntent, this, Context.BIND_AUTO_CREATE);
     }
 
-    private void setupStreamingModePipeline() {
-        this.inputSource = InputSource.CAMERA;
-        // Initializes a new MediaPipe Face Mesh solution instance in the streaming mode.
-        facemesh =
-                new FaceMesh(
-                        this,
-                        FaceMeshOptions.builder()
-                                .setStaticImageMode(false)
-                                .setRefineLandmarks(true)
-                                .setRunOnGpu(true)
-                                .build());
-        facemesh.setErrorListener((message, e) -> Log.e(TAG, "MediaPipe Face Mesh error:" + message));
+    public FaceMesh getFacemesh() {
+        if (facemeshBinder != null && facemeshBinder.facemesh != null) {
+            return facemeshBinder.facemesh;
+        } else {
+            return null;
+        }
+    }
 
-        cameraInput = new CameraInput(this);
-        cameraInput.setNewFrameListener(textureFrame -> facemesh.send(textureFrame));
 
-        facemesh.setResultListener(this::faceMeshResultReceive);
+    public void checkOverlayPermission(){
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (!Settings.canDrawOverlays(getApplicationContext())) {
+                // send user to the device settings
+                Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION);
+                startActivity(intent);
+            }
+        }
     }
 
     void faceMeshResultReceive(FaceMeshResult faceMeshResult) {
@@ -153,6 +168,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
         if (navHostFragment == null) {
             navHostFragment = (NavHostFragment) getSupportFragmentManager().findFragmentById(R.id.fragmentContainerView);
         }
+        // TODO support service
         assert navHostFragment != null;
         ((FaceMeshResultReceiverInterface) navHostFragment.getChildFragmentManager().getFragments().get(0)).setResult(faceMeshResult, leftEAR, rightEAR, System.nanoTime());
     }
@@ -160,52 +176,16 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
     @Override
     protected void onResume() {
         super.onResume();
-        if (inputSource == InputSource.CAMERA) {
-            // Restarts the camera and the opengl surface rendering.
-            cameraInput = new CameraInput(this);
-            cameraInput.setNewFrameListener(textureFrame -> facemesh.send(textureFrame));
-            viewForCamera.post(this::startCamera);
-//            glSurfaceView.post(this::startCamera);
-//            glSurfaceView.setVisibility(View.VISIBLE);
-        }
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        if (inputSource == InputSource.CAMERA) {
-//            glSurfaceView.setVisibility(View.GONE);
-            cameraInput.close();
-        }
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        stopCurrentPipeline();
         Log.d(TAG, "onStop called");
-    }
-
-    private void startCamera() {
-        cameraInput.start(
-                this,
-                facemesh.getGlContext(),
-                CameraInput.CameraFacing.FRONT,
-                viewForCamera.getWidth(),
-                viewForCamera.getHeight()
-//                glSurfaceView.getWidth(),
-//                glSurfaceView.getHeight()
-//                144,176
-        );
-    }
-
-    private void stopCurrentPipeline() {
-        if (cameraInput != null) {
-            cameraInput.setNewFrameListener(null);
-            cameraInput.close();
-        }
-        if (facemesh != null) {
-            facemesh.close();
-        }
     }
 }
