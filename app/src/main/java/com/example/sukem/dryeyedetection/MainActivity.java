@@ -61,26 +61,29 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
     private NavHostFragment navHostFragment;
 
     private FacemeshBinder facemeshBinder;
-    private boolean bounded = false;
+//    private boolean bounded = false;
 
 
     @Override
     public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
         Log.d(TAG, "onServiceConnected");
-        Toast.makeText(getApplicationContext(), "サービスに接続しました", Toast.LENGTH_SHORT).show();
+//        Toast.makeText(getApplicationContext(), "サービスに接続しました", Toast.LENGTH_SHORT).show();
         facemeshBinder = (FacemeshBinder) iBinder;
-        facemeshBinder.facemesh.setResultListener(this::faceMeshResultReceive);
-        bounded = true;
+        facemeshBinder.listenerInActivity = this::faceMeshResultReceive;
+//        bounded = true;
     }
 
+    private void cleanBinderFromActivity() {
+//        Toast.makeText(getApplicationContext(), "サービスから切断しました", Toast.LENGTH_SHORT).show();
+        facemeshBinder.listenerInActivity = null;
+        facemeshBinder = null;
+//        bounded = false;
+    }
+
+    // onServiceDisconnected は不正終了などのときしか呼ばれない
     @Override
     public void onServiceDisconnected(ComponentName componentName) {
-        Toast.makeText(getApplicationContext(), "サービスから切断しました", Toast.LENGTH_SHORT).show();
-        facemeshBinder.facemesh.setResultListener(facemesh -> {
-            Log.d("TAG", "NO activity");
-        });
-        facemeshBinder = null;
-        bounded = false;
+        cleanBinderFromActivity();
     }
 
     @Override
@@ -92,16 +95,6 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
         navHostFragment = (NavHostFragment) getSupportFragmentManager().findFragmentById(R.id.fragmentContainerView);
         assert navHostFragment != null;
         NavController navController = navHostFragment.getNavController();
-        navController.addOnDestinationChangedListener(new NavController.OnDestinationChangedListener() {
-            @Override
-            public void onDestinationChanged(@NonNull NavController navController, @NonNull NavDestination navDestination, @Nullable Bundle bundle) {
-
-//                Log.d(TAG, String.format("ID = %d", navDestination.getId()));
-//                Log.d(TAG, String.format("home = %d", R.id.navigation_home));
-//                Log.d(TAG, String.format("self = %d", R.id.navigation_selfcheck));
-//                Log.d(TAG, String.format("setting = %d", R.id.navigation_settings));
-            }
-        });
         NavigationUI.setupWithNavController(bottomNavigationView, navController);
 
 
@@ -121,9 +114,6 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
                 startService(new Intent(this, ForegroundService.class));
             }
         }
-
-        Intent bindIntent = new Intent(this, ForegroundService.class);
-        bindService(bindIntent, this, Context.BIND_AUTO_CREATE);
     }
 
     public FaceMesh getFacemesh() {
@@ -176,11 +166,16 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
     @Override
     protected void onResume() {
         super.onResume();
+        Intent bindIntent = new Intent(this, ForegroundService.class);
+        bindService(bindIntent, this, Context.BIND_IMPORTANT);
     }
 
     @Override
     protected void onPause() {
         super.onPause();
+        cleanBinderFromActivity();
+        unbindService(this);
+        Log.d(TAG, "onPause called");
     }
 
     @Override

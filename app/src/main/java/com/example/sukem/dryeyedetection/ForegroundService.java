@@ -37,7 +37,7 @@ public class ForegroundService extends LifecycleService {
     private WindowManager windowManager;
     private ImageView floatingButton;
     private WindowManager.LayoutParams params;
-    private FacemeshBinder facemeshBinder = new FacemeshBinder();
+    private final FacemeshBinder facemeshBinder = new FacemeshBinder();
     enum InputSource {
         UNKNOWN,
         CAMERA
@@ -82,9 +82,7 @@ public class ForegroundService extends LifecycleService {
 
         cameraInput = new CameraInputForService();
         cameraInput.setNewFrameListener(textureFrame -> facemeshBinder.facemesh.send(textureFrame));
-        facemeshBinder.facemesh.setResultListener(facemesh -> {
-//            Log.d(TAG, "DATA RECEIVED");
-        });
+        facemeshBinder.facemesh.setResultListener(facemeshBinder::resultListener);
 
         startCamera();
     }

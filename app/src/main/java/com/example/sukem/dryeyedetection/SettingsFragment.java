@@ -116,8 +116,11 @@ public class SettingsFragment extends Fragment implements FaceMeshResultReceiver
         View view = inflater.inflate(R.layout.fragment_settings, container, false);
 
         // Facemesh 描画設定
-        FaceMesh facemesh = ((MainActivity) getActivity()).getFacemesh();
-//        FaceMesh facemesh = ForegroundService.facemesh;
+        MainActivity mainActivity = (MainActivity) getActivity();
+        FaceMesh facemesh = null;
+        if (mainActivity != null) {
+            facemesh = mainActivity.getFacemesh();
+        }
         if (facemesh != null) {
             glSurfaceView = new SolutionGlSurfaceView<>(getContext(), facemesh.getGlContext(), facemesh.getGlMajorVersion());
             glSurfaceView.setSolutionResultRenderer(new FaceMeshResultGlRenderer());
