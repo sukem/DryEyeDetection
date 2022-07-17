@@ -2,14 +2,20 @@ package com.example.sukem.dryeyedetection;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.mediapipe.formats.proto.LandmarkProto;
+import com.google.mediapipe.framework.TextureFrame;
 import com.google.mediapipe.solutions.facemesh.FaceMeshConnections;
+import com.google.mediapipe.solutions.facemesh.FaceMeshResult;
 
 import java.util.List;
 
 public class EyeAspectRatioUtils {
     private static final String TAG = "EyeAspectRatioUtils";
 
+    public static final float DEFAULT_EAR_VALUE = 0.2f;
+    public static final float MAX_EAR_VALUE = 0.5f;
+
     public static float xyRatio = 0;
+    public static float earThreshold = DEFAULT_EAR_VALUE;
 
     private static float getDistance(float[] vec1, float[] vec2)
     {
@@ -24,9 +30,16 @@ public class EyeAspectRatioUtils {
     }
 
     public static float calcEyesAspectRatio(
-            List<LandmarkProto.NormalizedLandmark> faceLandmarkList,
+            FaceMeshResult faceMeshResult,
             ImmutableSet<FaceMeshConnections.Connection> connections)
     {
+        // input frame のサイズを取得
+        if (EyeAspectRatioUtils.xyRatio == 0) {
+            TextureFrame texture = faceMeshResult.acquireInputTextureFrame();
+            EyeAspectRatioUtils.xyRatio = (float) texture.getWidth() / texture.getHeight();
+        }
+
+        List<LandmarkProto.NormalizedLandmark> faceLandmarkList = faceMeshResult.multiFaceLandmarks().get(0).getLandmarkList();
         List<FaceMeshConnections.Connection> list = connections.asList();
         LandmarkProto.NormalizedLandmark p1 = faceLandmarkList.get(list.get(0).start());
         LandmarkProto.NormalizedLandmark p2 = faceLandmarkList.get(list.get(3).start());

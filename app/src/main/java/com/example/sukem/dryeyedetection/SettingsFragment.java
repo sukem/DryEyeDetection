@@ -1,27 +1,30 @@
 package com.example.sukem.dryeyedetection;
 
-import android.media.FaceDetector;
+import android.graphics.Color;
 import android.os.Bundle;
 
 import androidx.appcompat.widget.SwitchCompat;
 import androidx.fragment.app.Fragment;
 
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
+import android.widget.SeekBar;
+import android.widget.TextView;
 
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.LineData;
 import com.github.mikephil.charting.data.LineDataSet;
-import com.github.mikephil.charting.interfaces.datasets.IDataSet;
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
 import com.google.mediapipe.solutioncore.SolutionGlSurfaceView;
 import com.google.mediapipe.solutions.facemesh.FaceMesh;
 import com.google.mediapipe.solutions.facemesh.FaceMeshResult;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 
 /**
@@ -31,6 +34,9 @@ import java.util.LinkedList;
  */
 public class SettingsFragment extends Fragment implements FaceMeshResultReceiverInterface{
 
+    private static final String TAG = "SettingsFragment";
+    private static final int MAX_SEEK_VALUE = 50;
+
     private SolutionGlSurfaceView<FaceMeshResult> glSurfaceView;
     private LineChart lineChart;
 
@@ -39,7 +45,6 @@ public class SettingsFragment extends Fragment implements FaceMeshResultReceiver
     private final Object lockObj = new Object();
     private float leftEAR;
     private float rightEAR;
-
 
     public SettingsFragment() {
         // Required empty public constructor
@@ -73,31 +78,69 @@ public class SettingsFragment extends Fragment implements FaceMeshResultReceiver
 
     private void updateChart() {
         if (lineChart != null) {
+            final float width = 5.0001f;
             if (lineChart.getData() != null && lineChart.getData().getDataSetCount() > 0) {
                 // データ追加
-                ILineDataSet dataSet = lineChart.getData().getDataSetByIndex(0);
+                ILineDataSet dataSetL = lineChart.getData().getDataSetByIndex(0);
+                ILineDataSet dataSetR = lineChart.getData().getDataSetByIndex(1);
+                ILineDataSet dataSetT = lineChart.getData().getDataSetByIndex(2);
                 float x = 0f;
                 synchronized (lockObj) {
                     x = (currentTime - startTime) / 1000000000f;
-                    dataSet.addEntry(new Entry(x, leftEAR));
+                    dataSetL.addEntry(new Entry(x, leftEAR));
+                    dataSetR.addEntry(new Entry(x, rightEAR));
                 }
+                Entry entry0 =  dataSetT.getEntryForIndex(0);
+                Entry entry1 =  dataSetT.getEntryForIndex(1);
+                entry0.setY(EyeAspectRatioUtils.earThreshold);
+                entry1.setX(Math.max(x, width));
+                entry1.setY(EyeAspectRatioUtils.earThreshold);
+
                 lineChart.getData().notifyDataChanged();
                 lineChart.notifyDataSetChanged();
                 lineChart.invalidate();
-                lineChart.setVisibleXRange(0, 5.0001f);
+                lineChart.setVisibleXRange(0, width);
                 lineChart.moveViewToX(x);
             } else {
                 // 初期化
-                LinkedList<Entry> values = new LinkedList<>();
+                LinkedList<Entry> valuesL = new LinkedList<>();
+                LinkedList<Entry> valuesR = new LinkedList<>();
                 synchronized (lockObj) {
                     startTime = currentTime;
-                    values.add(new Entry(0, leftEAR));
+                    valuesL.add(new Entry(0, leftEAR));
+                    valuesR.add(new Entry(0, rightEAR));
                 }
-                LineDataSet dataSet = new LineDataSet(values, "leftEAR");
-                dataSet.setDrawIcons(false);
-                LineData lineData = new LineData(dataSet);
+                // グラフ設定 (EAR)
+                LineDataSet dataSetL = new LineDataSet(valuesL, "Left EAR");
+                LineDataSet dataSetR = new LineDataSet(valuesR, "Right EAR");
+                dataSetL.setDrawIcons(false);
+                dataSetL.setColor(Color.RED);
+                dataSetL.setCircleColor(Color.RED);
+                dataSetL.setDrawValues(false);
+                dataSetR.setDrawIcons(false);
+                dataSetR.setColor(Color.GREEN);
+                dataSetR.setCircleColor(Color.GREEN);
+                dataSetR.setDrawValues(false);
+
+                // グラフ設定 (threshold)
+                ArrayList<Entry> valuesT = new ArrayList<>();
+                valuesT.add(new Entry(0, EyeAspectRatioUtils.earThreshold));
+                valuesT.add(new Entry(width, EyeAspectRatioUtils.earThreshold));
+                LineDataSet dataSetThreshold = new LineDataSet(valuesT, "Threshold");
+                dataSetThreshold.setDrawIcons(false);
+                dataSetThreshold.setColor(Color.BLUE);
+                dataSetThreshold.setDrawCircles(false);
+                dataSetThreshold.setDrawValues(false);
+
+                ArrayList<ILineDataSet> dataSets = new ArrayList<>();
+                dataSets.add(dataSetL);
+                dataSets.add(dataSetR);
+                dataSets.add(dataSetThreshold);
+                LineData lineData = new LineData(dataSets);
                 lineChart.setData(lineData);
                 lineChart.setTouchEnabled(false);
+                lineChart.getDescription().setEnabled(false);
+                lineChart.setDrawGridBackground(true);
                 XAxis xAxis = lineChart.getXAxis();
                 xAxis.setGranularity(1);
             }
@@ -144,8 +187,31 @@ public class SettingsFragment extends Fragment implements FaceMeshResultReceiver
 
         // グラフ表示
         lineChart = view.findViewById(R.id.line_chart);
-        lineChart.setDrawGridBackground(true);
+
+        // EAR閾値変更シークバー設定
+        SeekBar thresholdSeekBar = view.findViewById(R.id.thresholdSeekBar);
+        TextView thresholdTextView = view.findViewById(R.id.thresholdTextView);
+        thresholdSeekBar.setProgress((int) (MAX_SEEK_VALUE * EyeAspectRatioUtils.DEFAULT_EAR_VALUE / EyeAspectRatioUtils.MAX_EAR_VALUE));
+        thresholdSeekBar.setMax(MAX_SEEK_VALUE);
+        thresholdSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                    @Override
+                    public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
+                        EyeAspectRatioUtils.earThreshold = (float)i / MAX_SEEK_VALUE * EyeAspectRatioUtils.MAX_EAR_VALUE;
+                        thresholdTextView.setText("value = " + String.valueOf(EyeAspectRatioUtils.earThreshold));
+
+
+                    }
+                    @Override
+                    public void onStartTrackingTouch(SeekBar seekBar) {}
+                    @Override
+                    public void onStopTrackingTouch(SeekBar seekBar) {}
+                }
+        );
 
         return view;
     }
+
+//    private String getThresholdText(int barValue) {
+////        return
+//    }
 }

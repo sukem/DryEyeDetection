@@ -136,19 +136,13 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
     }
 
     void faceMeshResultReceive(FaceMeshResult faceMeshResult) {
-        // input frame のサイズを取得
-        if (EyeAspectRatioUtils.xyRatio == 0) {
-            TextureFrame texture = faceMeshResult.acquireInputTextureFrame();
-            EyeAspectRatioUtils.xyRatio = (float) texture.getWidth() / texture.getHeight();
-        }
-
         float leftEAR = 0f;
         float rightEAR = 0f;
         if (!faceMeshResult.multiFaceLandmarks().isEmpty()) {
             // 左右注意
-            leftEAR = EyeAspectRatioUtils.calcEyesAspectRatio(faceMeshResult.multiFaceLandmarks().get(0).getLandmarkList(),
+            leftEAR = EyeAspectRatioUtils.calcEyesAspectRatio(faceMeshResult,
                     FaceMeshConnections.FACEMESH_RIGHT_EYE);
-            rightEAR = EyeAspectRatioUtils.calcEyesAspectRatio(faceMeshResult.multiFaceLandmarks().get(0).getLandmarkList(),
+            rightEAR = EyeAspectRatioUtils.calcEyesAspectRatio(faceMeshResult,
                     FaceMeshConnections.FACEMESH_LEFT_EYE);
 //                        Log.d(TAG, "FPS = " + String.valueOf(1000000000f / (System.nanoTime() - lastUpdate)));
         } else {
@@ -158,7 +152,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
         if (navHostFragment == null) {
             navHostFragment = (NavHostFragment) getSupportFragmentManager().findFragmentById(R.id.fragmentContainerView);
         }
-        // TODO support service
+        // DO NOT CALL FROM SERVICE
         assert navHostFragment != null;
         ((FaceMeshResultReceiverInterface) navHostFragment.getChildFragmentManager().getFragments().get(0)).setResult(faceMeshResult, leftEAR, rightEAR, System.nanoTime());
     }

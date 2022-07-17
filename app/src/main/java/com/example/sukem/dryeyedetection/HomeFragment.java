@@ -43,13 +43,12 @@ public class HomeFragment extends Fragment implements FaceMeshResultReceiverInte
 
     @Override
     public void setResult(FaceMeshResult faceMeshResult, float leftEAR, float rightEAR, long currentTime) {
-        float threshold = 0.2f;
-        if (leftEAR > threshold) {
+        if (leftEAR > EyeAspectRatioUtils.earThreshold) {
             leftEye.setImageResource(R.drawable.ic_eye_svgrepo_com);
         } else {
             leftEye.setImageResource(R.drawable.ic_eye_closed_svgrepo_com);
         }
-        if (rightEAR > threshold) {
+        if (rightEAR > EyeAspectRatioUtils.earThreshold) {
             rightEye.setImageResource(R.drawable.ic_eye_svgrepo_com);
         } else {
             rightEye.setImageResource(R.drawable.ic_eye_closed_svgrepo_com);
@@ -69,7 +68,6 @@ public class HomeFragment extends Fragment implements FaceMeshResultReceiverInte
         rightEye = view.findViewById(R.id.rightEye);
 
         Button buttonStart = view.findViewById(R.id.button1);
-        Button buttonStop = view.findViewById(R.id.button2);
         buttonStart.setOnClickListener(v -> {
 
         });
