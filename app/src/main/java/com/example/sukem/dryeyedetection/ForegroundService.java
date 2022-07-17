@@ -151,6 +151,7 @@ public class ForegroundService extends LifecycleService {
             windowManager.removeView(floatingButton);
             floatingButton = null;
         }
+        haveFloatingView = false;
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
