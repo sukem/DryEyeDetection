@@ -1,12 +1,9 @@
 package com.example.sukem.dryeyedetection;
 
-import android.content.Intent;
-import android.os.Build;
 import android.os.Bundle;
 
 import androidx.fragment.app.Fragment;
 
-import android.provider.Settings;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -43,15 +40,21 @@ public class HomeFragment extends Fragment implements FaceMeshResultReceiverInte
 
     @Override
     public void setResult(FaceMeshResult faceMeshResult, float leftEAR, float rightEAR, long currentTime) {
-        if (leftEAR > EyeAspectRatioUtils.earThreshold) {
-            leftEye.setImageResource(R.drawable.ic_eye_svgrepo_com);
-        } else {
-            leftEye.setImageResource(R.drawable.ic_eye_closed_svgrepo_com);
+        if (leftEye != null) {
+            if (leftEAR > EyeAspectRatioUtils.earThreshold) {
+                leftEye.setImageResource(R.drawable.ic_eye_svgrepo_com);
+            } else {
+                leftEye.setImageResource(R.drawable.ic_eye_closed_svgrepo_com);
+            }
         }
-        if (rightEAR > EyeAspectRatioUtils.earThreshold) {
-            rightEye.setImageResource(R.drawable.ic_eye_svgrepo_com);
+        if (rightEye != null) {
+            if (rightEAR > EyeAspectRatioUtils.earThreshold) {
+                rightEye.setImageResource(R.drawable.ic_eye_svgrepo_com);
+            } else {
+                rightEye.setImageResource(R.drawable.ic_eye_closed_svgrepo_com);
+            }
         } else {
-            rightEye.setImageResource(R.drawable.ic_eye_closed_svgrepo_com);
+            Log.d(TAG, "NOOOOOOO");
         }
     }
 
@@ -66,11 +69,6 @@ public class HomeFragment extends Fragment implements FaceMeshResultReceiverInte
         View view = inflater.inflate(R.layout.fragment_home, container, false);
         leftEye = view.findViewById(R.id.leftEye);
         rightEye = view.findViewById(R.id.rightEye);
-
-        Button buttonStart = view.findViewById(R.id.button1);
-        buttonStart.setOnClickListener(v -> {
-
-        });
         return view;
     }
 }

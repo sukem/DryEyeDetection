@@ -14,54 +14,39 @@
 
 package com.example.sukem.dryeyedetection;
 
-import android.annotation.SuppressLint;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.Build;
 import android.os.Bundle;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
-
-import android.os.Handler;
 import android.os.IBinder;
-import android.os.Message;
-import android.os.Messenger;
 import android.provider.Settings;
 import android.util.Log;
-import android.view.View;
-import android.widget.Button;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.navigation.NavController;
-import androidx.navigation.NavDestination;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.navigation.ui.NavigationUI;
-// ContentResolver dependency
+
 import com.google.android.material.bottomnavigation.BottomNavigationView;
-import com.google.common.collect.ImmutableSet;
 import com.google.mediapipe.components.PermissionHelper;
-import com.google.mediapipe.formats.proto.LandmarkProto.NormalizedLandmark;
-import com.google.mediapipe.framework.TextureFrame;
-import com.google.mediapipe.solutioncore.CameraInput;
 import com.google.mediapipe.solutions.facemesh.FaceMesh;
 import com.google.mediapipe.solutions.facemesh.FaceMeshConnections;
-import com.google.mediapipe.solutions.facemesh.FaceMeshOptions;
 import com.google.mediapipe.solutions.facemesh.FaceMeshResult;
-
-import java.util.List;
 
 /** Main activity of MediaPipe Face Mesh app. */
 public class MainActivity extends AppCompatActivity implements ServiceConnection {
     private static final String TAG = "MainActivity";
-
     private NavHostFragment navHostFragment;
-
     private FacemeshBinder facemeshBinder;
-//    private boolean bounded = false;
+
+    private boolean bounded = false;
+
+    public boolean getBounded() {
+        return this.bounded;
+    }
 
 
     @Override
@@ -70,14 +55,16 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
 //        Toast.makeText(getApplicationContext(), "サービスに接続しました", Toast.LENGTH_SHORT).show();
         facemeshBinder = (FacemeshBinder) iBinder;
         facemeshBinder.listenerInActivity = this::faceMeshResultReceive;
-//        bounded = true;
+        bounded = true;
     }
 
     private void cleanBinderFromActivity() {
-//        Toast.makeText(getApplicationContext(), "サービスから切断しました", Toast.LENGTH_SHORT).show();
-        facemeshBinder.listenerInActivity = null;
-        facemeshBinder = null;
-//        bounded = false;
+        Toast.makeText(getApplicationContext(), "サービスから切断しました", Toast.LENGTH_SHORT).show();
+        if (facemeshBinder != null) {
+            facemeshBinder.listenerInActivity = null;
+            facemeshBinder = null;
+        }
+        bounded = false;
     }
 
     // onServiceDisconnected は不正終了などのときしか呼ばれない
