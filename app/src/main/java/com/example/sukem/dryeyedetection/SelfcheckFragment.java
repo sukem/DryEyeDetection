@@ -24,6 +24,7 @@ public class SelfcheckFragment extends Fragment implements FaceMeshResultReceive
 
     private static final int MAX_PROGRESS_VALUE = 256;
     private static final int COUNTDWON_INTERVAL = 100;
+    private static final long DRYEYE_THRESHOLD = 12000;
 
     private ProgressBar progressBar;
     private TextView progressText;
@@ -52,7 +53,11 @@ public class SelfcheckFragment extends Fragment implements FaceMeshResultReceive
             if ((current.left + current.right) / 2 > EyeAspectRatio.earThreshold) {
                 eye.setImageResource(R.drawable.ic_eye_svgrepo_com);
             } else {
-                eye.setImageResource(R.drawable.ic_eye_closed_svgrepo_com);
+                if (current.detected) {
+                    eye.setImageResource(R.drawable.ic_eye_closed_svgrepo_com);
+                } else {
+                    eye.setImageResource(R.drawable.ic_eye_no_svgrepo_com);
+                }
                 if (countDownTimer != null) {
                     // セルフチェック失敗
                     countDownTimer.cancel();
@@ -81,7 +86,7 @@ public class SelfcheckFragment extends Fragment implements FaceMeshResultReceive
         progressBar.setMax(MAX_PROGRESS_VALUE);
         startCheckButton = view.findViewById(R.id.startCheckButton);
         startCheckButton.setOnClickListener(view1 -> {
-            countDownTimer = new CountDownTimer(12000, COUNTDWON_INTERVAL) {
+            countDownTimer = new CountDownTimer(DRYEYE_THRESHOLD, COUNTDWON_INTERVAL) {
                 @Override
                 public void onTick(long l) {
                     setProgressState(l);
@@ -99,6 +104,7 @@ public class SelfcheckFragment extends Fragment implements FaceMeshResultReceive
             countDownTimer.start();
             startCheckButton.setEnabled(false);
         });
+        setProgressState(DRYEYE_THRESHOLD);
         resultText = view.findViewById(R.id.resultText);
 
         return view;
@@ -106,6 +112,6 @@ public class SelfcheckFragment extends Fragment implements FaceMeshResultReceive
 
     private void setProgressState(long l) {
         progressText.setText(String.format("%2.1f s", l / 1000f));
-        progressBar.setProgress((int) (MAX_PROGRESS_VALUE * l / 12000f));
+        progressBar.setProgress((int) ((float) MAX_PROGRESS_VALUE * l / DRYEYE_THRESHOLD));
     }
 }

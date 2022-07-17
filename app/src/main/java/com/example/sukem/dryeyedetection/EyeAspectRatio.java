@@ -21,10 +21,14 @@ public class EyeAspectRatio {
         public float left;
         public float right;
         public long time;
+        public boolean detected = false;
         EARData(float left, float right) {
             this.left = left;
             this.right = right;
             this.time = System.nanoTime();
+            if (left != 0 && right != 0) {
+                this.detected = true;
+            }
         }
     }
 
@@ -78,8 +82,8 @@ public class EyeAspectRatio {
     }
 
     public void updateEARs(FaceMeshResult result) {
-        float leftEAR = 0f;
-        float rightEAR = 0f;
+        float leftEAR = 0;
+        float rightEAR = 0;
         if (!result.multiFaceLandmarks().isEmpty()) {
             // 左右注意
             leftEAR = EyeAspectRatio.calcEyesAspectRatio(result,
@@ -87,8 +91,6 @@ public class EyeAspectRatio {
             rightEAR = EyeAspectRatio.calcEyesAspectRatio(result,
                     FaceMeshConnections.FACEMESH_LEFT_EYE);
 //                        Log.d(TAG, "FPS = " + String.valueOf(1000000000f / (System.nanoTime() - lastUpdate)));
-        } else {
-//                        Log.d(TAG, "EYES NOT FOUND");
         }
         data.add(new EARData(leftEAR, rightEAR));
     }

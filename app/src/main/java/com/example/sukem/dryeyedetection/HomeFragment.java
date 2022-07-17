@@ -40,14 +40,18 @@ public class HomeFragment extends Fragment implements FaceMeshResultReceiverInte
     @Override
     public void setResult(FaceMeshResult faceMeshResult, EyeAspectRatio.EARData current) {
         if (leftEye != null) {
-            if (current.left > EyeAspectRatio.earThreshold) {
+            if (!current.detected) {
+                leftEye.setImageResource(R.drawable.ic_eye_no_svgrepo_com);
+            } else if (current.left > EyeAspectRatio.earThreshold) {
                 leftEye.setImageResource(R.drawable.ic_eye_svgrepo_com);
             } else {
                 leftEye.setImageResource(R.drawable.ic_eye_closed_svgrepo_com);
             }
         }
         if (rightEye != null) {
-            if (current.right > EyeAspectRatio.earThreshold) {
+            if (!current.detected) {
+                rightEye.setImageResource(R.drawable.ic_eye_no_svgrepo_com);
+            } else if (current.right > EyeAspectRatio.earThreshold) {
                 rightEye.setImageResource(R.drawable.ic_eye_svgrepo_com);
             } else {
                 rightEye.setImageResource(R.drawable.ic_eye_closed_svgrepo_com);
