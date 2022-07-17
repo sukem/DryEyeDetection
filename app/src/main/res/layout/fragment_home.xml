@@ -30,13 +30,37 @@
         app:layout_constraintTop_toTopOf="@+id/leftEye" />
 
     <TextView
-        android:id="@+id/textView2"
-        android:layout_width="0dp"
+        android:id="@+id/blinkRateText"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="128dp"
         android:text="TextView"
+        android:textSize="32sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/rightEye" />
+        app:layout_constraintTop_toBottomOf="@+id/leftEye" />
+
+    <TextView
+        android:id="@+id/textView2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="TextView"
+        android:textSize="32sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/blinkRateText" />
+
+    <androidx.appcompat.widget.SwitchCompat
+        android:id="@+id/floatingViewSwitch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="64dp"
+        android:minHeight="48dp"
+        android:text="Display floating view"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textView2" />
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -2,15 +2,14 @@ package com.example.sukem.dryeyedetection;
 
 import android.os.Bundle;
 
+import androidx.appcompat.widget.SwitchCompat;
 import androidx.fragment.app.Fragment;
 
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
+import android.widget.CompoundButton;
 import android.widget.ImageView;
-import android.widget.Toast;
 
 import com.google.mediapipe.solutions.facemesh.FaceMeshResult;
 
@@ -39,22 +38,20 @@ public class HomeFragment extends Fragment implements FaceMeshResultReceiverInte
     }
 
     @Override
-    public void setResult(FaceMeshResult faceMeshResult, float leftEAR, float rightEAR, long currentTime) {
+    public void setResult(FaceMeshResult faceMeshResult, EyeAspectRatio.EARData current) {
         if (leftEye != null) {
-            if (leftEAR > EyeAspectRatioUtils.earThreshold) {
+            if (current.left > EyeAspectRatio.earThreshold) {
                 leftEye.setImageResource(R.drawable.ic_eye_svgrepo_com);
             } else {
                 leftEye.setImageResource(R.drawable.ic_eye_closed_svgrepo_com);
             }
         }
         if (rightEye != null) {
-            if (rightEAR > EyeAspectRatioUtils.earThreshold) {
+            if (current.right > EyeAspectRatio.earThreshold) {
                 rightEye.setImageResource(R.drawable.ic_eye_svgrepo_com);
             } else {
                 rightEye.setImageResource(R.drawable.ic_eye_closed_svgrepo_com);
             }
-        } else {
-            Log.d(TAG, "NOOOOOOO");
         }
     }
 
@@ -69,6 +66,23 @@ public class HomeFragment extends Fragment implements FaceMeshResultReceiverInte
         View view = inflater.inflate(R.layout.fragment_home, container, false);
         leftEye = view.findViewById(R.id.leftEye);
         rightEye = view.findViewById(R.id.rightEye);
+
+        SwitchCompat switchCompat = view.findViewById(R.id.floatingViewSwitch);
+        MainActivity mainActivity = (MainActivity) getActivity();
+        if (mainActivity != null) {
+            mainActivity.enableFloatingVeiw(ForegroundService.haveFloatingView);
+        }
+        switchCompat.setChecked(ForegroundService.haveFloatingView);
+        switchCompat.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                MainActivity mainActivity = (MainActivity) getActivity();
+                if (mainActivity != null) {
+                    mainActivity.enableFloatingVeiw(b);
+                }
+            }
+        });
+
         return view;
     }
 }

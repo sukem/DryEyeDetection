@@ -12,6 +12,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.PixelFormat;
+import android.graphics.drawable.Drawable;
 import android.os.Binder;
 import android.os.Build;
 import android.os.IBinder;
@@ -36,18 +37,15 @@ public class ForegroundService extends LifecycleService {
     private static final String TAG = "ForegroundService";
     private WindowManager windowManager;
     private ImageView floatingButton;
+    public static boolean haveFloatingView = false;
     private WindowManager.LayoutParams params;
     private final FacemeshBinder facemeshBinder = new FacemeshBinder();
-    enum InputSource {
-        UNKNOWN,
-        CAMERA
-    }
-    private InputSource inputSource = InputSource.UNKNOWN;
     private CameraInputForService cameraInput;
 
     @Override
     public IBinder onBind(Intent intent) {
         super.onBind(intent);
+        facemeshBinder.service = this;
         return facemeshBinder;
     }
 
@@ -57,7 +55,6 @@ public class ForegroundService extends LifecycleService {
         super.onCreate();
         Log.d(TAG, "onCreate called");
 
-//        setupFloatingView();
         setupStreamingModePipeline();
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -68,7 +65,6 @@ public class ForegroundService extends LifecycleService {
     }
 
     private void setupStreamingModePipeline() {
-        this.inputSource = InputSource.CAMERA;
         // Initializes a new MediaPipe Face Mesh solution instance in the streaming mode.
         facemeshBinder.facemesh =
                 new FaceMesh(
@@ -108,11 +104,14 @@ public class ForegroundService extends LifecycleService {
         }
     }
 
-    private void setupFloatingView() {
-        windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
+    public void setupFloatingView() {
+        if (floatingButton != null) {
+            return;
+        }
 
+        windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
         floatingButton = new ImageView(this);
-        floatingButton.setImageResource(R.mipmap.ic_launcher_round);
+        floatingButton.setImageResource(R.drawable.ic_eye_svgrepo_com);
 
         int LAYOUT_FLAG;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -147,6 +146,13 @@ public class ForegroundService extends LifecycleService {
         windowManager.addView(floatingButton, params);
     }
 
+    public void removeFloatingView() {
+        if (floatingButton != null) {
+            windowManager.removeView(floatingButton);
+            floatingButton = null;
+        }
+    }
+
     @RequiresApi(Build.VERSION_CODES.O)
     private void startFloatingButtonForeground()
     {
@@ -170,15 +176,12 @@ public class ForegroundService extends LifecycleService {
         NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID);
         Notification notification = notificationBuilder.setOngoing(true)
                 .setContentTitle("Service running")
-                .setContentText("Displaying over other apps")
-
-                // this is important, otherwise the notification will show the way
-                // you want i.e. it will show some default notification
+                .setContentText("Facemesh running")
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
                 .setPriority(NotificationManager.IMPORTANCE_MIN)
                 .setCategory(Notification.CATEGORY_SERVICE)
                 .setContentIntent(openIntent)
-                .addAction(R.drawable.ic_launcher_foreground, "停止する", sendPendingIntent)
+                .addAction(R.drawable.ic_eye_svgrepo_com, "停止する", sendPendingIntent)
                 .build();
         startForeground(2, notification);
     }
@@ -187,9 +190,7 @@ public class ForegroundService extends LifecycleService {
     public void onDestroy() {
         super.onDestroy();
         stopCurrentPipeline();
-        if (null != floatingButton) {
-            windowManager.removeView(floatingButton);
-        }
+        removeFloatingView();
     }
 
     class MyGestureDetector extends android.view.GestureDetector.SimpleOnGestureListener {
@@ -222,14 +223,16 @@ public class ForegroundService extends LifecycleService {
 
         @Override
         public boolean onSingleTapConfirmed(MotionEvent e) {
-//            Intent intent = new Intent(getApplicationContext(), MainActivity.class);
-//            startActivity(intent);
             return true;
         }
 
         @Override
         public boolean onDoubleTap(MotionEvent e) {
-            stopSelf();
+            removeFloatingView();
+            // mainActivityに繋がってなければ終了
+            if (facemeshBinder.listenerInActivity == null) {
+                stopSelf();
+            }
             return true;
         }
     }

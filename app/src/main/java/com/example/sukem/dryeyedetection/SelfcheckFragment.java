@@ -5,7 +5,6 @@ import android.os.Bundle;
 import androidx.fragment.app.Fragment;
 
 import android.os.CountDownTimer;
-import android.os.Handler;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -48,9 +47,9 @@ public class SelfcheckFragment extends Fragment implements FaceMeshResultReceive
     }
 
     @Override
-    public void setResult(FaceMeshResult faceMeshResult, float leftEAR, float rightEAR, long currentTime) {
+    public void setResult(FaceMeshResult faceMeshResult, EyeAspectRatio.EARData current) {
         if (eye != null) {
-            if ((leftEAR + rightEAR) / 2 > EyeAspectRatioUtils.earThreshold) {
+            if ((current.left + current.right) / 2 > EyeAspectRatio.earThreshold) {
                 eye.setImageResource(R.drawable.ic_eye_svgrepo_com);
             } else {
                 eye.setImageResource(R.drawable.ic_eye_closed_svgrepo_com);

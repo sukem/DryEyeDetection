@@ -23,9 +23,11 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.provider.Settings;
 import android.util.Log;
+import android.widget.CompoundButton;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.SwitchCompat;
 import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.navigation.ui.NavigationUI;
@@ -42,12 +44,6 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
     private NavHostFragment navHostFragment;
     private FacemeshBinder facemeshBinder;
 
-    private boolean bounded = false;
-
-    public boolean getBounded() {
-        return this.bounded;
-    }
-
 
     @Override
     public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
@@ -55,16 +51,25 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
 //        Toast.makeText(getApplicationContext(), "サービスに接続しました", Toast.LENGTH_SHORT).show();
         facemeshBinder = (FacemeshBinder) iBinder;
         facemeshBinder.listenerInActivity = this::faceMeshResultReceive;
-        bounded = true;
     }
 
     private void cleanBinderFromActivity() {
-        Toast.makeText(getApplicationContext(), "サービスから切断しました", Toast.LENGTH_SHORT).show();
+//        Toast.makeText(getApplicationContext(), "サービスから切断しました", Toast.LENGTH_SHORT).show();
         if (facemeshBinder != null) {
             facemeshBinder.listenerInActivity = null;
             facemeshBinder = null;
         }
-        bounded = false;
+    }
+
+    public void enableFloatingVeiw(boolean b) {
+        if (facemeshBinder != null && facemeshBinder.service != null) {
+            if (b) {
+                facemeshBinder.service.setupFloatingView();
+            } else {
+                facemeshBinder.service.removeFloatingView();
+            }
+            ForegroundService.haveFloatingView = b;
+        }
     }
 
     // onServiceDisconnected は不正終了などのときしか呼ばれない
@@ -122,26 +127,13 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
         }
     }
 
-    void faceMeshResultReceive(FaceMeshResult faceMeshResult) {
-        float leftEAR = 0f;
-        float rightEAR = 0f;
-        if (!faceMeshResult.multiFaceLandmarks().isEmpty()) {
-            // 左右注意
-            leftEAR = EyeAspectRatioUtils.calcEyesAspectRatio(faceMeshResult,
-                    FaceMeshConnections.FACEMESH_RIGHT_EYE);
-            rightEAR = EyeAspectRatioUtils.calcEyesAspectRatio(faceMeshResult,
-                    FaceMeshConnections.FACEMESH_LEFT_EYE);
-//                        Log.d(TAG, "FPS = " + String.valueOf(1000000000f / (System.nanoTime() - lastUpdate)));
-        } else {
-//                        Log.d(TAG, "EYES NOT FOUND");
-        }
-
+    void faceMeshResultReceive(FaceMeshResult faceMeshResult, EyeAspectRatio ear) {
+        // DO NOT CALL FROM SERVICE
         if (navHostFragment == null) {
             navHostFragment = (NavHostFragment) getSupportFragmentManager().findFragmentById(R.id.fragmentContainerView);
         }
-        // DO NOT CALL FROM SERVICE
         assert navHostFragment != null;
-        ((FaceMeshResultReceiverInterface) navHostFragment.getChildFragmentManager().getFragments().get(0)).setResult(faceMeshResult, leftEAR, rightEAR, System.nanoTime());
+        ((FaceMeshResultReceiverInterface) navHostFragment.getChildFragmentManager().getFragments().get(0)).setResult(faceMeshResult, ear.getCurrent());
     }
 
     @Override
@@ -163,5 +155,16 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
     protected void onStop() {
         super.onStop();
         Log.d(TAG, "onStop called");
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        Log.d(TAG, "onDestroy called");
+
+        if (!ForegroundService.haveFloatingView) {
+            Intent intent = new Intent(MainActivity.this, ForegroundService.class);
+            stopService(intent);
+        }
     }
 }

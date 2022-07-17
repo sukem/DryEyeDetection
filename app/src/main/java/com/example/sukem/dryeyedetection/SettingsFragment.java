@@ -6,7 +6,6 @@ import android.os.Bundle;
 import androidx.appcompat.widget.SwitchCompat;
 import androidx.fragment.app.Fragment;
 
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -60,16 +59,16 @@ public class SettingsFragment extends Fragment implements FaceMeshResultReceiver
     }
 
     @Override
-    public void setResult(FaceMeshResult faceMeshResult, float leftEAR, float rightEAR, long currentTime) {
+    public void setResult(FaceMeshResult faceMeshResult, EyeAspectRatio.EARData current) {
         if (glSurfaceView != null) {
             glSurfaceView.setRenderData(faceMeshResult);
             glSurfaceView.requestRender();
         }
 
         synchronized (lockObj) {
-            this.leftEAR = leftEAR;
-            this.rightEAR = rightEAR;
-            this.currentTime = currentTime;
+            this.leftEAR = current.left;
+            this.rightEAR = current.right;
+            this.currentTime = current.time;
         }
         if (lineChart != null) {
             lineChart.post(this::updateChart);
@@ -92,9 +91,9 @@ public class SettingsFragment extends Fragment implements FaceMeshResultReceiver
                 }
                 Entry entry0 =  dataSetT.getEntryForIndex(0);
                 Entry entry1 =  dataSetT.getEntryForIndex(1);
-                entry0.setY(EyeAspectRatioUtils.earThreshold);
+                entry0.setY(EyeAspectRatio.earThreshold);
                 entry1.setX(Math.max(x, width));
-                entry1.setY(EyeAspectRatioUtils.earThreshold);
+                entry1.setY(EyeAspectRatio.earThreshold);
 
                 lineChart.getData().notifyDataChanged();
                 lineChart.notifyDataSetChanged();
@@ -124,8 +123,8 @@ public class SettingsFragment extends Fragment implements FaceMeshResultReceiver
 
                 // グラフ設定 (threshold)
                 ArrayList<Entry> valuesT = new ArrayList<>();
-                valuesT.add(new Entry(0, EyeAspectRatioUtils.earThreshold));
-                valuesT.add(new Entry(width, EyeAspectRatioUtils.earThreshold));
+                valuesT.add(new Entry(0, EyeAspectRatio.earThreshold));
+                valuesT.add(new Entry(width, EyeAspectRatio.earThreshold));
                 LineDataSet dataSetThreshold = new LineDataSet(valuesT, "Threshold");
                 dataSetThreshold.setDrawIcons(false);
                 dataSetThreshold.setColor(Color.BLUE);
@@ -191,13 +190,13 @@ public class SettingsFragment extends Fragment implements FaceMeshResultReceiver
         // EAR閾値変更シークバー設定
         SeekBar thresholdSeekBar = view.findViewById(R.id.thresholdSeekBar);
         TextView thresholdTextView = view.findViewById(R.id.thresholdTextView);
-        thresholdSeekBar.setProgress((int) (MAX_SEEK_VALUE * EyeAspectRatioUtils.DEFAULT_EAR_VALUE / EyeAspectRatioUtils.MAX_EAR_VALUE));
+        thresholdSeekBar.setProgress((int) (MAX_SEEK_VALUE * EyeAspectRatio.DEFAULT_EAR_VALUE / EyeAspectRatio.MAX_EAR_VALUE));
         thresholdSeekBar.setMax(MAX_SEEK_VALUE);
         thresholdSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
                     @Override
                     public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
-                        EyeAspectRatioUtils.earThreshold = (float)i / MAX_SEEK_VALUE * EyeAspectRatioUtils.MAX_EAR_VALUE;
-                        thresholdTextView.setText("value = " + String.valueOf(EyeAspectRatioUtils.earThreshold));
+                        EyeAspectRatio.earThreshold = (float)i / MAX_SEEK_VALUE * EyeAspectRatio.MAX_EAR_VALUE;
+                        thresholdTextView.setText("value = " + String.valueOf(EyeAspectRatio.earThreshold));
 
 
                     }
