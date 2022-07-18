@@ -1,6 +1,7 @@
 package com.example.sukem.dryeyedetection;
 
 import android.os.Binder;
+import android.util.Log;
 
 import com.google.mediapipe.solutioncore.ResultListener;
 import com.google.mediapipe.solutions.facemesh.FaceMesh;
@@ -11,23 +12,25 @@ public class FacemeshBinder extends Binder {
 
     public FaceMesh facemesh;
 
-    public interface ResultListener<T1,T2> {
-        void run(T1 result, T2 ear);
+    public interface EARResultListener {
+        void run(EyeAspectRatio ear);
     }
-    public ResultListener<FaceMeshResult, EyeAspectRatio> listenerInActivity;
-    public ResultListener<FaceMeshResult, EyeAspectRatio> listenerInService;
+    public EARResultListener listenerInActivity;
+    public EARResultListener listenerInService;
     public ForegroundService service;
     private final EyeAspectRatio ear = new EyeAspectRatio();
 
-
     public void resultListener(FaceMeshResult result) {
+//        long start = System.nanoTime();
         ear.updateEARs(result);
+        ear.calcBlinkRate();
+//        Log.d(TAG, String.format("TIME TO CALC BLINK RATE = %f", (System.nanoTime() - start) / 1000000000f));
 
         if (listenerInActivity != null) {
-            listenerInActivity.run(result, ear);
+            listenerInActivity.run(ear);
         }
         if (listenerInService != null) {
-            listenerInService.run(result, ear);
+            listenerInService.run(ear);
         }
 //        if (listenerInActivity == null && listenerInService == null) {
 //            Log.d(TAG, "No facemesh listener");

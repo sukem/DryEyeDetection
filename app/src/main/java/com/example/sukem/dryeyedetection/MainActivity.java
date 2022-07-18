@@ -127,13 +127,13 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
         }
     }
 
-    void faceMeshResultReceive(FaceMeshResult faceMeshResult, EyeAspectRatio ear) {
+    void faceMeshResultReceive(EyeAspectRatio ear) {
         // DO NOT CALL FROM SERVICE
         if (navHostFragment == null) {
             navHostFragment = (NavHostFragment) getSupportFragmentManager().findFragmentById(R.id.fragmentContainerView);
         }
         assert navHostFragment != null;
-        ((FaceMeshResultReceiverInterface) navHostFragment.getChildFragmentManager().getFragments().get(0)).setResult(faceMeshResult, ear.getCurrent());
+        ((FaceMeshResultReceiverInterface) navHostFragment.getChildFragmentManager().getFragments().get(0)).setResult(ear);
     }
 
     @Override

@@ -59,16 +59,16 @@ public class SettingsFragment extends Fragment implements FaceMeshResultReceiver
     }
 
     @Override
-    public void setResult(FaceMeshResult faceMeshResult, EyeAspectRatio.EARData current) {
+    public void setResult(EyeAspectRatio ear) {
         if (glSurfaceView != null) {
-            glSurfaceView.setRenderData(faceMeshResult);
+            glSurfaceView.setRenderData(ear.currentResult);
             glSurfaceView.requestRender();
         }
 
         synchronized (lockObj) {
-            this.leftEAR = current.left;
-            this.rightEAR = current.right;
-            this.currentTime = current.time;
+            this.leftEAR = ear.getCurrent().left;
+            this.rightEAR = ear.getCurrent().right;
+            this.currentTime = ear.getCurrent().time;
         }
         if (lineChart != null) {
             lineChart.post(this::updateChart);
@@ -203,7 +203,9 @@ public class SettingsFragment extends Fragment implements FaceMeshResultReceiver
                     @Override
                     public void onStartTrackingTouch(SeekBar seekBar) {}
                     @Override
-                    public void onStopTrackingTouch(SeekBar seekBar) {}
+                    public void onStopTrackingTouch(SeekBar seekBar) {
+
+                    }
                 }
         );
 

@@ -48,12 +48,12 @@ public class SelfcheckFragment extends Fragment implements FaceMeshResultReceive
     }
 
     @Override
-    public void setResult(FaceMeshResult faceMeshResult, EyeAspectRatio.EARData current) {
+    public void setResult(EyeAspectRatio ear) {
         if (eye != null) {
-            if ((current.left + current.right) / 2 > EyeAspectRatio.earThreshold) {
+            if ((ear.getCurrent().left + ear.getCurrent().right) / 2 > EyeAspectRatio.earThreshold) {
                 eye.setImageResource(R.drawable.ic_eye_svgrepo_com);
             } else {
-                if (current.detected) {
+                if (ear.getCurrent().detected) {
                     eye.setImageResource(R.drawable.ic_eye_closed_svgrepo_com);
                 } else {
                     eye.setImageResource(R.drawable.ic_eye_no_svgrepo_com);
