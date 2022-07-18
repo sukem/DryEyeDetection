@@ -23,6 +23,8 @@ public class EyeAspectRatio {
     public static final long LAST_DETECTED_THRESHOLD = 5;
 
     public static float earThreshold = DEFAULT_EAR_VALUE;
+    public static int blinkPerMinThreshold = 15;
+    public static float blinkRateThreshold = 0.15f;
     private static float xyRatio = 0;
 
 

@@ -43,11 +43,13 @@ public class ForegroundService extends LifecycleService {
     private static final String TAG = "ForegroundService";
     private WindowManager windowManager;
     private ImageView floatingButton;
-    public static boolean haveFloatingView = false;
     private WindowManager.LayoutParams params;
     private final FacemeshBinder facemeshBinder = new FacemeshBinder();
     private CameraInputForService cameraInput;
     private long lastNotificationTime = 0;
+
+    public static boolean haveFloatingView = false;
+    public static boolean doNotification = true;
 
     @Override
     public IBinder onBind(@NonNull Intent intent) {
@@ -96,9 +98,10 @@ public class ForegroundService extends LifecycleService {
 
         float blinkPerMin = (ear.getLeftBlinkPerMin() + ear.getRightBlinkPerMin()) / 2;
         float blinkRate = (ear.getLeftBlinkRate() + ear.getRightBlinkRate()) / 2;
-        if (ear.getDataState() == EyeAspectRatio.EARDataState.FINE
-                && blinkPerMin < 30
-                && blinkRate < 0.3
+        if (doNotification
+                && ear.getDataState() == EyeAspectRatio.EARDataState.FINE
+                && blinkPerMin < EyeAspectRatio.blinkPerMinThreshold
+                && blinkRate < EyeAspectRatio.blinkRateThreshold
                 && (System.nanoTime() - lastNotificationTime > 60 * 1000000000L)) {
             alertByNotification();
             lastNotificationTime = System.nanoTime();

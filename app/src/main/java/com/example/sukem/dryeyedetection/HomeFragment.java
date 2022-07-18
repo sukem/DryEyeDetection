@@ -108,19 +108,28 @@ public class HomeFragment extends Fragment implements FaceMeshResultReceiverInte
         leftEye = view.findViewById(R.id.leftEye);
         rightEye = view.findViewById(R.id.rightEye);
 
-        SwitchCompat switchCompat = view.findViewById(R.id.floatingViewSwitch);
+        SwitchCompat floatingViewSwitch = view.findViewById(R.id.floatingViewSwitch);
         MainActivity mainActivity = (MainActivity) getActivity();
         if (mainActivity != null) {
             mainActivity.enableFloatingVeiw(ForegroundService.haveFloatingView);
         }
-        switchCompat.setChecked(ForegroundService.haveFloatingView);
-        switchCompat.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+        floatingViewSwitch.setChecked(ForegroundService.haveFloatingView);
+        floatingViewSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
                 MainActivity mainActivity = (MainActivity) getActivity();
                 if (mainActivity != null) {
                     mainActivity.enableFloatingVeiw(b);
                 }
+            }
+        });
+
+        SwitchCompat notificationSwitch = view.findViewById(R.id.notificationSwitch);
+        notificationSwitch.setChecked(ForegroundService.doNotification);
+        notificationSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                ForegroundService.doNotification = b;
             }
         });
 
