@@ -18,6 +18,7 @@ import android.os.Build;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.GestureDetector;
 import android.view.Gravity;
 import android.view.MotionEvent;
@@ -25,13 +26,18 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.ImageView;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 import androidx.lifecycle.LifecycleService;
+import androidx.navigation.fragment.NavHostFragment;
 
 import com.google.mediapipe.solutioncore.CameraInput;
 import com.google.mediapipe.solutions.facemesh.FaceMesh;
 import com.google.mediapipe.solutions.facemesh.FaceMeshOptions;
+
+import java.text.AttributedCharacterIterator;
 
 public class ForegroundService extends LifecycleService {
     private static final String TAG = "ForegroundService";
@@ -41,9 +47,10 @@ public class ForegroundService extends LifecycleService {
     private WindowManager.LayoutParams params;
     private final FacemeshBinder facemeshBinder = new FacemeshBinder();
     private CameraInputForService cameraInput;
+    private long lastNotificationTime = 0;
 
     @Override
-    public IBinder onBind(Intent intent) {
+    public IBinder onBind(@NonNull Intent intent) {
         super.onBind(intent);
         facemeshBinder.service = this;
         return facemeshBinder;
@@ -57,11 +64,80 @@ public class ForegroundService extends LifecycleService {
 
         setupStreamingModePipeline();
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startFloatingButtonForeground();
-        } else {
-            startForeground(1, new Notification());
+        startFloatingButtonForeground();
+
+        facemeshBinder.listenerInService = this::faceMeshResultReceive;
+    }
+
+    void faceMeshResultReceive(EyeAspectRatio ear) {
+        if (floatingButton != null) {
+            if ((ear.getCurrent().left + ear.getCurrent().right) / 2 > EyeAspectRatio.earThreshold) {
+                floatingButton.post(() -> {
+                    if (floatingButton != null) {
+                        floatingButton.setImageResource(R.drawable.ic_eye_svgrepo_com);
+                    }
+                });
+            } else {
+                if (ear.getCurrent().detected) {
+                    floatingButton.post(() -> {
+                        if (floatingButton != null) {
+                            floatingButton.setImageResource(R.drawable.ic_eye_closed_svgrepo_com);
+                        }
+                    });
+                } else {
+                    floatingButton.post(() -> {
+                        if (floatingButton != null) {
+                            floatingButton.setImageResource(R.drawable.ic_eye_no_svgrepo_com);
+                        }
+                    });
+                }
+            }
         }
+
+        float blinkPerMin = (ear.getLeftBlinkPerMin() + ear.getRightBlinkPerMin()) / 2;
+        float blinkRate = (ear.getLeftBlinkRate() + ear.getRightBlinkRate()) / 2;
+        if (ear.getDataState() == EyeAspectRatio.EARDataState.FINE
+                && blinkPerMin < 30
+                && blinkRate < 0.3
+                && (System.nanoTime() - lastNotificationTime > 60 * 1000000000L)) {
+            alertByNotification();
+            lastNotificationTime = System.nanoTime();
+        }
+    }
+
+    private void alertByNotification() {
+        // 通知
+        String channelId = "com.example.sukem.dryeyedetection.alert";
+        NotificationChannel channel = new NotificationChannel(
+                channelId,
+                "Dry Eye Alert",
+                NotificationManager.IMPORTANCE_HIGH);
+
+        NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        manager.createNotificationChannel(channel);
+
+        // タップしたときにMainActivityを起動するためのIntent
+        Intent openMainIntent = new Intent(getApplicationContext(), MainActivity.class);
+        PendingIntent openIntent = PendingIntent.getActivity(getApplicationContext(), 0, openMainIntent, PendingIntent.FLAG_IMMUTABLE);
+
+        NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(getApplicationContext(), channelId);
+        Notification notification = notificationBuilder.setOngoing(true)
+                .setContentTitle("Dry eye alert")
+                .setContentText("Your eyes may be dry!")
+                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setPriority(NotificationManager.IMPORTANCE_HIGH)
+                .setAutoCancel(true)
+                .setOngoing(false)
+                .setCategory(Notification.CATEGORY_REMINDER)
+                .setContentIntent(openIntent)
+                .build();
+//        notification.flags &= ~Notification.FLAG_NO_CLEAR;
+//        notification.flags &= ~Notification.FLAG_FOREGROUND_SERVICE;
+
+        Log.d(TAG, String.valueOf(notification.flags));
+        NotificationManagerCompat notificationManagerCompat = NotificationManagerCompat.from(getApplicationContext());
+        // 通知
+        notificationManagerCompat.notify(2, notification);
     }
 
     private void setupStreamingModePipeline() {
@@ -112,16 +188,13 @@ public class ForegroundService extends LifecycleService {
         windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
         floatingButton = new ImageView(this);
         floatingButton.setImageResource(R.drawable.ic_eye_svgrepo_com);
+        floatingButton.setBackgroundResource(R.drawable.floating_background);
 
         int LAYOUT_FLAG;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            LAYOUT_FLAG = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;
-        } else {
-            LAYOUT_FLAG = WindowManager.LayoutParams.TYPE_PHONE;
-        }
+        LAYOUT_FLAG = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;
         params = new WindowManager.LayoutParams(
-                WindowManager.LayoutParams.WRAP_CONTENT,
-                WindowManager.LayoutParams.WRAP_CONTENT,
+                (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 64, getResources().getDisplayMetrics()),
+                (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 64, getResources().getDisplayMetrics()),
                 LAYOUT_FLAG,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
                 PixelFormat.TRANSLUCENT);
@@ -154,11 +227,10 @@ public class ForegroundService extends LifecycleService {
         haveFloatingView = false;
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     private void startFloatingButtonForeground()
     {
-        String NOTIFICATION_CHANNEL_ID = "com.example.sukem.dryeyedetection";
-        String channelName = "Overlay Service";
+        String NOTIFICATION_CHANNEL_ID = "com.example.sukem.dryeyedetection.service";
+        String channelName = "Foreground Service";
         NotificationChannel chan = new NotificationChannel(NOTIFICATION_CHANNEL_ID, channelName, NotificationManager.IMPORTANCE_MIN);
 
         NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
@@ -182,9 +254,9 @@ public class ForegroundService extends LifecycleService {
                 .setPriority(NotificationManager.IMPORTANCE_MIN)
                 .setCategory(Notification.CATEGORY_SERVICE)
                 .setContentIntent(openIntent)
-                .addAction(R.drawable.ic_eye_svgrepo_com, "停止する", sendPendingIntent)
+                .addAction(R.drawable.ic_eye_svgrepo_com, "stop service", sendPendingIntent)
                 .build();
-        startForeground(2, notification);
+        startForeground(1, notification);
     }
 
     @Override

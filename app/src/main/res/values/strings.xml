@@ -10,7 +10,7 @@
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="eyes_mesh_switch_text">Eye</string>
     <string name="face_mesh_switch_text">Face</string>
-    <string name="blink_text_measuring">Measuring...</string>
+    <string name="blink_text_measuring">Measuring…</string>
     <string name="blink_text_not_detected">No eyes detected</string>
     <string name="blink_min_text_value">LEFT: %2d/min, RIGHT: %2d/min</string>
     <string name="blink_rate_text_value">LEFT:%3d%%, RIGHT:%3d%%</string>
