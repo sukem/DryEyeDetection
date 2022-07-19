@@ -1,7 +1,5 @@
 package com.example.sukem.dryeyedetection;
 
-import android.util.Log;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.mediapipe.formats.proto.LandmarkProto;
 import com.google.mediapipe.framework.TextureFrame;
@@ -15,16 +13,16 @@ import java.util.List;
 public class EyeAspectRatio {
     private static final String TAG = "EyeAspectRatio";
 
-    public static final float DEFAULT_EAR_VALUE = 0.2f;
+    public static final float DEFAULT_EAR_THRESHOLD = 0.18f;
     public static final float EAR_HYSTERESIS_VALUE = 0.02f;
     public static final float MAX_EAR_VALUE = 0.5f;
     public static final long DATA_DURATION_SEC = 40;
     public static final long TOTAL_DETECTED_THRESHOLD = 10;
     public static final long LAST_DETECTED_THRESHOLD = 5;
 
-    public static float earThreshold = DEFAULT_EAR_VALUE;
-    public static int blinkPerMinThreshold = 15;
-    public static float blinkRateThreshold = 0.15f;
+    public static float earThreshold = DEFAULT_EAR_THRESHOLD;
+    public static int blinkPerMinThreshold = 30;
+    public static float blinkRateThreshold = 0.03f;
     private static float xyRatio = 0;
 
 

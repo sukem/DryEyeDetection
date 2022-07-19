@@ -13,7 +13,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="32dp"
-        android:layout_marginTop="128dp"
+        android:layout_marginTop="32dp"
         android:layout_marginEnd="155dp"
         android:src="@drawable/ic_eye_closed_svgrepo_com"
         app:layout_constraintEnd_toStartOf="@+id/rightEye"
@@ -35,9 +35,10 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="32dp"
-        android:text="Blinks per minute"
+        android:text="@string/blinks_per_minute"
         android:textAlignment="center"
         android:textSize="24sp"
+        android:textColor="@color/purple_700"
         app:layout_constraintEnd_toEndOf="@+id/blinkRateText"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="@+id/blinkRateText"
@@ -72,9 +73,10 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="64dp"
-        android:text="Percentage of eyes closed"
+        android:text="@string/percentage_of_eyes_closed"
         android:textAlignment="center"
         android:textSize="24sp"
+        android:textColor="@color/purple_700"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
@@ -85,25 +87,25 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="64dp"
         android:layout_marginEnd="64dp"
-        android:layout_marginBottom="64dp"
         android:orientation="vertical"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent">
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/blinkPerMinText">
 
         <androidx.appcompat.widget.SwitchCompat
             android:id="@+id/floatingViewSwitch"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:minHeight="48dp"
-            android:text="Display floating view" />
+            android:text="@string/display_floating_view" />
 
         <androidx.appcompat.widget.SwitchCompat
             android:id="@+id/notificationSwitch"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:minHeight="48dp"
-            android:text="Send out dry eye warning notices" />
+            android:text="@string/send_out_dry_eye_warning_notices" />
     </LinearLayout>
 
 

@@ -1,11 +1,13 @@
 package com.example.sukem.dryeyedetection;
 
 import android.annotation.SuppressLint;
+import android.content.Intent;
 import android.os.Bundle;
 
 import androidx.appcompat.widget.SwitchCompat;
 import androidx.fragment.app.Fragment;
 
+import android.provider.Settings;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -101,6 +103,14 @@ public class HomeFragment extends Fragment implements FaceMeshResultReceiverInte
         super.onCreate(savedInstanceState);
     }
 
+    private void requestOverlayPermission(){
+        if (!Settings.canDrawOverlays(getContext())) {
+            // send user to the device settings
+            Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION);
+            startActivity(intent);
+        }
+    }
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
@@ -111,7 +121,8 @@ public class HomeFragment extends Fragment implements FaceMeshResultReceiverInte
         SwitchCompat floatingViewSwitch = view.findViewById(R.id.floatingViewSwitch);
         MainActivity mainActivity = (MainActivity) getActivity();
         if (mainActivity != null) {
-            mainActivity.enableFloatingVeiw(ForegroundService.haveFloatingView);
+            boolean canOverlay = Settings.canDrawOverlays(getContext());
+            mainActivity.enableFloatingVeiw(ForegroundService.haveFloatingView && canOverlay);
         }
         floatingViewSwitch.setChecked(ForegroundService.haveFloatingView);
         floatingViewSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
@@ -119,6 +130,11 @@ public class HomeFragment extends Fragment implements FaceMeshResultReceiverInte
             public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
                 MainActivity mainActivity = (MainActivity) getActivity();
                 if (mainActivity != null) {
+                    if (b && !Settings.canDrawOverlays(getContext())) {
+                        requestOverlayPermission();
+                        floatingViewSwitch.setChecked(false);
+                        return;
+                    }
                     mainActivity.enableFloatingVeiw(b);
                 }
             }

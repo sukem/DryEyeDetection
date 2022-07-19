@@ -18,16 +18,17 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.provider.Settings;
 import android.util.Log;
-import android.widget.CompoundButton;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.SwitchCompat;
+import androidx.fragment.app.Fragment;
 import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.navigation.ui.NavigationUI;
@@ -35,8 +36,8 @@ import androidx.navigation.ui.NavigationUI;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.mediapipe.components.PermissionHelper;
 import com.google.mediapipe.solutions.facemesh.FaceMesh;
-import com.google.mediapipe.solutions.facemesh.FaceMeshConnections;
-import com.google.mediapipe.solutions.facemesh.FaceMeshResult;
+
+import java.util.List;
 
 /** Main activity of MediaPipe Face Mesh app. */
 public class MainActivity extends AppCompatActivity implements ServiceConnection {
@@ -92,18 +93,30 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
 
         // サービス開始
         if (PermissionHelper.cameraPermissionsGranted(this)) {
-            checkOverlayPermission();
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                if(Settings.canDrawOverlays(getApplicationContext())) {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        Intent floatingButtonServiceIntent = new Intent(this, ForegroundService.class);
-                        startForegroundService(floatingButtonServiceIntent);
-                    } else {
-                        startService(new Intent(this, ForegroundService.class));
-                    }
-                }
+            startForegroundService();
+        } else {
+            PermissionHelper.checkAndRequestCameraPermissions(this);
+        }
+    }
+
+    private void startForegroundService() {
+        Intent floatingButtonServiceIntent = new Intent(this, ForegroundService.class);
+        startForegroundService(floatingButtonServiceIntent);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(
+            int requestCode, @NonNull String[] permission, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permission, grantResults);
+        if (grantResults.length <= 0) {
+            return;
+        }
+        if (requestCode == 0) {
+            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                startForegroundService();
             } else {
-                startService(new Intent(this, ForegroundService.class));
+                Toast.makeText(this, "No Camera permission", Toast.LENGTH_LONG).show();
+                finish();
             }
         }
     }
@@ -116,24 +129,16 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
         }
     }
 
-
-    public void checkOverlayPermission(){
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (!Settings.canDrawOverlays(getApplicationContext())) {
-                // send user to the device settings
-                Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION);
-                startActivity(intent);
-            }
-        }
-    }
-
     void faceMeshResultReceive(EyeAspectRatio ear) {
         // DO NOT CALL FROM SERVICE
         if (navHostFragment == null) {
             navHostFragment = (NavHostFragment) getSupportFragmentManager().findFragmentById(R.id.fragmentContainerView);
         }
         assert navHostFragment != null;
-        ((FaceMeshResultReceiverInterface) navHostFragment.getChildFragmentManager().getFragments().get(0)).setResult(ear);
+        List<Fragment> fragments = navHostFragment.getChildFragmentManager().getFragments();
+        if (fragments.size() > 0) {
+            ((FaceMeshResultReceiverInterface) fragments.get(0)).setResult(ear);
+        }
     }
 
     @Override
@@ -161,10 +166,5 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
     protected void onDestroy() {
         super.onDestroy();
         Log.d(TAG, "onDestroy called");
-
-        if (!ForegroundService.haveFloatingView) {
-            Intent intent = new Intent(MainActivity.this, ForegroundService.class);
-            stopService(intent);
-        }
     }
 }

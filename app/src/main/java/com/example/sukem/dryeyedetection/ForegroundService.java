@@ -41,6 +41,8 @@ import java.text.AttributedCharacterIterator;
 
 public class ForegroundService extends LifecycleService {
     private static final String TAG = "ForegroundService";
+    private static final long NOTIFICATION_INTERVAL = 30;
+
     private WindowManager windowManager;
     private ImageView floatingButton;
     private WindowManager.LayoutParams params;
@@ -100,15 +102,15 @@ public class ForegroundService extends LifecycleService {
         float blinkRate = (ear.getLeftBlinkRate() + ear.getRightBlinkRate()) / 2;
         if (doNotification
                 && ear.getDataState() == EyeAspectRatio.EARDataState.FINE
-                && blinkPerMin < EyeAspectRatio.blinkPerMinThreshold
-                && blinkRate < EyeAspectRatio.blinkRateThreshold
-                && (System.nanoTime() - lastNotificationTime > 60 * 1000000000L)) {
-            alertByNotification();
+                && blinkPerMin <= EyeAspectRatio.blinkPerMinThreshold
+                && blinkRate <= EyeAspectRatio.blinkRateThreshold
+                && (System.nanoTime() - lastNotificationTime > NOTIFICATION_INTERVAL * 1000000000L)) {
+            alertByNotification(blinkPerMin, blinkRate);
             lastNotificationTime = System.nanoTime();
         }
     }
 
-    private void alertByNotification() {
+    private void alertByNotification(float blinkPerMin, float blinkRate) {
         // 通知
         String channelId = "com.example.sukem.dryeyedetection.alert";
         NotificationChannel channel = new NotificationChannel(
@@ -125,8 +127,8 @@ public class ForegroundService extends LifecycleService {
 
         NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(getApplicationContext(), channelId);
         Notification notification = notificationBuilder.setOngoing(true)
-                .setContentTitle("Dry eye alert")
-                .setContentText("Your eyes may be dry!")
+                .setContentTitle("Your eyes may be dry!")
+                .setContentText(getString(R.string.notification_content_text, (int)blinkRate*100, (int)blinkPerMin))
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
                 .setPriority(NotificationManager.IMPORTANCE_HIGH)
                 .setAutoCancel(true)
@@ -267,6 +269,14 @@ public class ForegroundService extends LifecycleService {
         super.onDestroy();
         stopCurrentPipeline();
         removeFloatingView();
+    }
+
+    @Override
+    public void onTaskRemoved(Intent rootIntent) {
+        super.onTaskRemoved(rootIntent);
+        if (!haveFloatingView) {
+            stopSelf();
+        }
     }
 
     class MyGestureDetector extends android.view.GestureDetector.SimpleOnGestureListener {

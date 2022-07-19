@@ -14,4 +14,10 @@
     <string name="blink_text_not_detected">No eyes detected</string>
     <string name="blink_min_text_value">LEFT: %2d/min, RIGHT: %2d/min</string>
     <string name="blink_rate_text_value">LEFT:%3d%%, RIGHT:%3d%%</string>
+    <string name="threshold_text_value">EAR Threshold = %.2f</string>
+    <string name="percentage_of_eyes_closed">Percentage of eyes closed</string>
+    <string name="display_floating_view">Display floating view</string>
+    <string name="send_out_dry_eye_warning_notices">Send out dry eye warning notices</string>
+    <string name="blinks_per_minute">Blinks per minute</string>
+    <string name="notification_content_text">Eyes closed: %d%%, Blinks: %d/min</string>
 </resources>

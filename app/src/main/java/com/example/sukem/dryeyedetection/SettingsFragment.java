@@ -23,6 +23,7 @@ import com.google.mediapipe.solutioncore.SolutionGlSurfaceView;
 import com.google.mediapipe.solutions.facemesh.FaceMesh;
 import com.google.mediapipe.solutions.facemesh.FaceMeshResult;
 
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.LinkedList;
 
@@ -190,15 +191,14 @@ public class SettingsFragment extends Fragment implements FaceMeshResultReceiver
         // EAR閾値変更シークバー設定
         SeekBar thresholdSeekBar = view.findViewById(R.id.thresholdSeekBar);
         TextView thresholdTextView = view.findViewById(R.id.thresholdTextView);
-        thresholdSeekBar.setProgress((int) (MAX_SEEK_VALUE * EyeAspectRatio.DEFAULT_EAR_VALUE / EyeAspectRatio.MAX_EAR_VALUE));
+        thresholdSeekBar.setProgress((int) (MAX_SEEK_VALUE * EyeAspectRatio.earThreshold / EyeAspectRatio.MAX_EAR_VALUE));
+        thresholdTextView.setText(getString(R.string.threshold_text_value, EyeAspectRatio.earThreshold));
         thresholdSeekBar.setMax(MAX_SEEK_VALUE);
         thresholdSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
                     @Override
                     public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
                         EyeAspectRatio.earThreshold = (float)i / MAX_SEEK_VALUE * EyeAspectRatio.MAX_EAR_VALUE;
-                        thresholdTextView.setText("value = " + String.valueOf(EyeAspectRatio.earThreshold));
-
-
+                        thresholdTextView.setText(getString(R.string.threshold_text_value, EyeAspectRatio.earThreshold));
                     }
                     @Override
                     public void onStartTrackingTouch(SeekBar seekBar) {}
